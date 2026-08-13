@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { buildBackup, readBackupFile, shareBackup } from "../backup.js";
+import { clearCrashes, crashText, listCrashes } from "../crashLog.js";
+import { CONTACT } from "../legal.js";
 import { FOCUS_META } from "../exercises.js";
 import { notifySupported, sendTest } from "../notify.js";
 import { photosForExport } from "../photoFiles.js";
@@ -22,6 +24,8 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
   const [doc, setDoc] = useState(null);
   /* 全削除は二段階。1段目で意図を、2段目で「元に戻せない」ことを確かめる */
   const [confirmErase, setConfirmErase] = useState(0);
+  const [crashes, setCrashes] = useState([]);
+  const [crashMsg, setCrashMsg] = useState("");
   const cheers = core.cheers ?? [];
   const reasons = toArr(core.profile?.stopReason);
   const { stage, sessions } = info;
@@ -48,6 +52,13 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
   }, [showTransfer, core, log, photos]);
   /* 「用意しています…」やエラー文をコピーさせない */
   const exportReady = exportText.startsWith("{");
+
+  /* 落ちた記録があるかどうか。開いたときに1回だけ見る */
+  useEffect(() => {
+    let dead = false;
+    listCrashes().then((list) => { if (!dead) setCrashes(list); });
+    return () => { dead = true; };
+  }, []);
 
   if (doc) return <LegalText which={doc} onClose={() => setDoc(null)} />;
 
@@ -359,6 +370,35 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
           </button>
         ))}
       </div>
+
+      {/* 不具合の記録。落ちたことがある人にだけ出す */}
+      {crashes.length > 0 && (
+        <>
+          <p style={{ color: C.muted }} className="text-xs mb-2 px-1">不具合の記録</p>
+          <div style={card()} className="border-2 rounded-3xl px-5 py-5 mb-7">
+            <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-3">
+              画面が表示できなかったときの記録が {crashes.length} 件あります。
+              <strong>この記録が自動で送られることはありません。</strong>
+              直してほしいときは、下のボタンでコピーして {CONTACT} まで送ってください。
+              名前・体重・写真・メモは含まれません。
+            </p>
+            <button
+              onClick={async () => {
+                try { await navigator.clipboard.writeText(crashText(crashes)); setCrashMsg("コピーしました"); }
+                catch (e) { setCrashMsg("コピーできませんでした"); }
+              }}
+              style={{ borderColor: C.lineDeep, color: C.muted }}
+              className="fx w-full border-2 rounded-full py-3 text-xs font-bold mb-2">
+              内容をコピーする
+            </button>
+            <button onClick={async () => { await clearCrashes(); setCrashes([]); setCrashMsg(""); }}
+              style={{ color: C.muted }} className="fx w-full rounded-full py-2 text-xs font-bold">
+              記録を消す
+            </button>
+            {crashMsg && <p style={{ color: C.muted }} className="text-xs mt-2">{crashMsg}</p>}
+          </div>
+        </>
+      )}
 
       {/* すべて消す。いちばん下に置き、色でも他と区別する */}
       <p style={{ color: C.muted }} className="text-xs mb-2 px-1">記録を消す</p>

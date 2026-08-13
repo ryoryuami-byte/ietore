@@ -11,7 +11,12 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",
-      globals: { ...globals.browser, ...globals.es2021 },
+      globals: {
+        ...globals.browser,
+        ...globals.es2021,
+        /* vite の define で埋め込む版番号 */
+        __APP_VERSION__: "readonly",
+      },
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
     settings: { react: { version: "18.3" } },

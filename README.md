@@ -8,6 +8,8 @@ npm install
 npm run dev      # http://localhost:5173（同じ Wi-Fi のスマホからも開けます）
 ```
 
+- **発売の手順 → [docs/RELEASE.md](docs/RELEASE.md)**
+- ストア掲載の素材と文章 → [store/](store/)
 - ビルドと実機での確認 → [docs/BUILD.md](docs/BUILD.md)
 - テストと実機チェック表 → [docs/TESTING.md](docs/TESTING.md)
 - 公開する法務文書 → [docs/legal/](docs/legal/)
@@ -22,8 +24,8 @@ npm run dev      # http://localhost:5173（同じ Wi-Fi のスマホからも開
 | Phase 2 ネイティブ化 | **済** Capacitor で iOS / Android。保存を端末側へ移した |
 | Phase 3 発売に必要な機能 | **済** 通知・法務・全削除・ファイルバックアップ |
 | Phase 4 品質保証 | **済** 自動テスト109件。実機テスト表は [docs/TESTING.md](docs/TESTING.md) |
-| Phase 5 ストア準備 | これから（アイコン・スクショ・審査） |
-| Phase 6 発売と初動 | これから |
+| Phase 5 ストア準備 | **ほぼ済** 掲載文・プライバシー申告・審査対策。**アイコンとスクショはご用意ぶん** |
+| Phase 6 発売と初動 | 手順書のみ（Apple Developer 登録が要るため） |
 
 発売の方針は決定済みです。**Capacitor のみ（PWAは出さない）／完全無料・広告なし／iOS先行 → Android後追い。**
 
@@ -43,6 +45,7 @@ src/
   notify.js          お知らせの予約
   backup.js          引き継ぎ。ファイルの書き出し・読み込み
   legal.js           免責・プライバシーポリシー・利用規約の文面
+  crashLog.js        落ちた記録。端末の中だけに残す（外へは送らない）
   sound.js           音とバイブ
   image.js           写真の縮小
   hooks.js           背面スクロールの固定・画面スリープ防止・カウントダウン
@@ -81,3 +84,15 @@ ios/  android/       Capacitor が生成したネイティブ側
 - 毎日のお知らせ（やりきった日・お休みの日は鳴らない）
 - 端末をまたぐ引き継ぎ（ファイル／文字列）
 - すべての記録を消す
+
+## 外部へ送らないこと
+
+このアプリは**通信そのものを一切行いません**。確かめられます。
+
+```bash
+grep -rnE "fetch\(|XMLHttpRequest|new WebSocket|axios" src/   # 何も出ません
+```
+
+クラッシュ報告サービス（Sentry など）も入れていません。落ちた記録は
+`crashLog.js` が端末の中だけに残し、送るかどうかは利用者が決めます。
+理由は [store/privacy-answers.md](store/privacy-answers.md) にあります。

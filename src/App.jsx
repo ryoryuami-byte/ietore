@@ -24,6 +24,7 @@
 import { useEffect, Component } from "react";
 import { AppInner } from "./AppInner.jsx";
 import { FigStyles } from "./components/Fig.jsx";
+import { crashText, listCrashes, recordCrash } from "./crashLog.js";
 import { buildPlan } from "./logic/plan.js";
 import { K_CORE, readJSON, writeJSON } from "./storage.js";
 import { BODY, C, DISPLAY, sticker } from "./tokens.js";
@@ -32,10 +33,23 @@ import { BODY, C, DISPLAY, sticker } from "./tokens.js";
 class Boundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { err: null };
+    this.state = { err: null, copied: false };
   }
   static getDerivedStateFromError(err) {
     return { err };
+  }
+  /* 落ちた記録を端末の中だけに残す。外へは送らない。
+     利用者が自分で見て、自分の意思でコピーして送れるようにするため */
+  componentDidCatch(err, info) {
+    recordCrash(err, info);
+  }
+  async copy() {
+    try {
+      await navigator.clipboard.writeText(crashText(await listCrashes()));
+      this.setState({ copied: true });
+    } catch (e) {
+      this.setState({ copied: false });
+    }
   }
   async rebuild() {
     try {
@@ -59,9 +73,17 @@ class Boundary extends Component {
             下のメッセージを開発者に伝えてください。記録は消えていません。
           </p>
           <pre style={{ background: C.surface, borderColor: C.line, color: C.pinkDeep }}
-            className="border-2 rounded-2xl p-4 text-xs whitespace-pre-wrap break-words mb-6">
+            className="border-2 rounded-2xl p-4 text-xs whitespace-pre-wrap break-words mb-4" data-selectable>
             {String(this.state.err?.message ?? this.state.err)}
           </pre>
+          <button onClick={() => this.copy()}
+            style={{ borderColor: C.lineDeep, color: C.muted }}
+            className="fx w-full border-2 rounded-full py-3 text-xs font-bold mb-2">
+            {this.state.copied ? "コピーしました" : "くわしい内容をコピーする"}
+          </button>
+          <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-6">
+            コピーした内容は自動では送られません。送るかどうかは、あなたが決められます。
+          </p>
           <button onClick={() => this.rebuild()}
             style={{ background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
             className="fx w-full rounded-full py-4 text-base font-bold">
