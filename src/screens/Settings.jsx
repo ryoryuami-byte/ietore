@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FOCUS_META } from "../exercises.js";
+import { photosForExport } from "../photoFiles.js";
 import { SESSIONS_PER_STAGE, STAGE_MAX, STAGE_STEP, lvMeta } from "../logic/progress.js";
 import { ConfirmSheet } from "./LogView.jsx";
 import { C, DISPLAY, card, sticker } from "../tokens.js";
@@ -18,11 +19,27 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
   const { stage, sessions } = info;
   const restSec = REST_OPTIONS.includes(core.restSec) ? core.restSec : REST_SEC;
 
-  /* 写真を含むと数百KBになるので、パネルを開いたときだけ作る */
-  const exportText = useMemo(
-    () => (showTransfer ? JSON.stringify({ v: 17.2, core, log, photos }) : ""),
-    [showTransfer, core, log, photos]
-  );
+  /* 写真を含むと数百KBになるので、パネルを開いたときだけ作る。
+     ネイティブでは写真がファイルに逃がしてあり、一覧にはファイル名しか無い。
+     別の端末へ持っていくには実体が要るので、ここで読み直して data: に戻す
+     （読み込みは非同期なので、できあがるまで「用意しています…」を出す） */
+  const [exportText, setExportText] = useState("");
+  useEffect(() => {
+    if (!showTransfer) { setExportText(""); return; }
+    let dead = false;
+    setExportText("用意しています…");
+    (async () => {
+      try {
+        const withData = await photosForExport(photos);
+        if (!dead) setExportText(JSON.stringify({ v: 17.2, core, log, photos: withData }));
+      } catch (e) {
+        if (!dead) setExportText("写真を読み出せませんでした。もう一度開いてみてください。");
+      }
+    })();
+    return () => { dead = true; };
+  }, [showTransfer, core, log, photos]);
+  /* 「用意しています…」やエラー文をコピーさせない */
+  const exportReady = exportText.startsWith("{");
 
   const tryImport = () => {
     setImportMsg("");
@@ -199,12 +216,17 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
               style={{ background: C.bg, borderColor: C.lineDeep, color: C.ink }}
               className="fx w-full border-2 rounded-2xl px-3 py-2 text-xs mb-2 resize-none" />
             <button
+              disabled={!exportReady}
               onClick={async () => {
                 try { await navigator.clipboard.writeText(exportText); setImportMsg("コピーしました"); }
                 catch (e) { setImportMsg("コピーできませんでした。上の枠を長押しして選択してください。"); }
               }}
-              style={{ background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
-              className="fx w-full rounded-full py-3 text-sm font-bold mb-5">コピーする</button>
+              style={exportReady
+                ? { background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }
+                : { background: C.line, color: C.muted, fontFamily: DISPLAY }}
+              className="fx w-full rounded-full py-3 text-sm font-bold mb-5">
+              {exportReady ? "コピーする" : "用意しています…"}
+            </button>
 
             <p style={{ fontFamily: DISPLAY }} className="text-xs font-bold mb-1.5">読み込み</p>
             <p style={{ color: C.pinkDeep }} className="text-xs leading-relaxed mb-2 font-bold">

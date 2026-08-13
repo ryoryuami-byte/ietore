@@ -4,7 +4,7 @@ import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 
 export default [
-  { ignores: ["dist/**", "ios/**", "android/**", "app/**", "node_modules/**"] },
+  { ignores: ["dist/**", "ios/**", "android/**", "node_modules/**", "**/*.json"] },
   js.configs.recommended,
   {
     files: ["**/*.{js,jsx}"],
@@ -48,7 +48,7 @@ export default [
   },
   {
     /* 設定ファイルは Node の文脈で動く */
-    files: ["*.config.js", "capacitor.config.json"],
+    files: ["*.config.js"],
     languageOptions: { globals: { ...globals.node } },
   },
 ];

@@ -1,0 +1,22 @@
+{
+  "appId": "jp.ietore.app",
+  "appName": "イエトレ",
+  "webDir": "dist",
+  "backgroundColor": "#FFF3F7",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#FFF3F7",
+    "limitsNavigationsToAppBoundDomains": true,
+    "preferredContentMode": "mobile"
+  },
+  "android": {
+    "backgroundColor": "#FFF3F7",
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon",
+      "iconColor": "#FF8FB1"
+    }
+  }
+}

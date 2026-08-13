@@ -1,9 +1,21 @@
 import { useEffect, useRef } from "react";
+import { Preferences } from "@capacitor/preferences";
 import { REST_SEC } from "./utils.js";
+import { hydratePhotos, offloadPhotos } from "./photoFiles.js";
+import { isNative } from "./platform.js";
 
 /* ================= 保存 ================= */
 /* v9は全部を1キーに入れていたため、写真が増えると記録の保存ごと失敗した。
-   用途ごとに3つへ分割し、変わったキーだけ書き込む。 */
+   用途ごとに3つへ分割し、変わったキーだけ書き込む。
+
+   保存先はここだけが知っている。呼ぶ側（AppInner / Boundary）は
+   readJSON / writeJSON の2つしか見ていないので、
+   置き場所が変わってもここ以外は直さなくてよい。
+
+     ネイティブ … Capacitor Preferences（写真の実体だけ photoFiles.js がファイルへ）
+     プレビュー … window.storage
+     ブラウザ   … localStorage
+*/
 const K_CORE = "hometrain:core:v1";
 const K_LOG = "hometrain:log:v1";
 const K_PHOTOS = "hometrain:photos:v1";
@@ -15,34 +27,60 @@ const DEFAULT_CORE = {
 };
 
 /* window.storage はプレビュー環境（Claudeのアーティファクト）にしか無い。
-   実機・ブラウザ・アプリ化後は localStorage に保存する。 */
+   ブラウザでは localStorage に保存する。 */
 const hasHostStorage = () => typeof window !== "undefined" && !!window.storage;
 const hasLocal = () => {
   try { return typeof window !== "undefined" && !!window.localStorage; }
   catch (e) { return false; /* プライベートブラウズ等で参照自体が失敗する場合 */ }
 };
 
-async function readJSON(key) {
-  try {
-    if (hasHostStorage()) {
-      const r = await window.storage.get(key, false);
-      return r ? JSON.parse(r.value) : null;
-    }
-    if (!hasLocal()) return null;
-    const raw = window.localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  } catch (e) {
-    return null; /* 未作成のキーは例外になる */
+/* 文字列そのものの読み書き。JSON にするのは一段上でやる */
+async function readRaw(key) {
+  if (isNative()) {
+    const { value } = await Preferences.get({ key });
+    return value ?? null;
   }
+  if (hasHostStorage()) {
+    const r = await window.storage.get(key, false);
+    return r ? r.value : null;
+  }
+  if (!hasLocal()) return null;
+  return window.localStorage.getItem(key);
 }
-async function writeJSON(key, value) {
-  const json = JSON.stringify(value);
+
+async function writeRaw(key, json) {
+  if (isNative()) {
+    await Preferences.set({ key, value: json });
+    return;
+  }
   if (hasHostStorage()) {
     await window.storage.set(key, json, false);
     return;
   }
   if (!hasLocal()) throw new Error("no-storage");
   window.localStorage.setItem(key, json); /* 容量超過は例外になり、保存失敗の表示が出る */
+}
+
+async function readJSON(key) {
+  try {
+    const raw = await readRaw(key);
+    const value = raw ? JSON.parse(raw) : null;
+    /* 写真だけは、保存されている形（ファイル名）から表示できる形に戻す */
+    if (key === K_PHOTOS) return await hydratePhotos(value);
+    return value;
+  } catch (e) {
+    return null; /* 未作成のキーは例外になる */
+  }
+}
+
+async function writeJSON(key, value) {
+  if (key === K_PHOTOS) {
+    /* 新しい写真をファイルへ書き出し、保存領域にはファイル名だけを残す */
+    const stored = await offloadPhotos(value);
+    await writeRaw(key, JSON.stringify(stored));
+    return;
+  }
+  await writeRaw(key, JSON.stringify(value));
 }
 
 /* 値が変わったときだけ、少し待ってから書き込む */

@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { KeepAwake } from "@capacitor-community/keep-awake";
+import { isNative } from "./platform.js";
 
 /* ================= 背面スクロールの固定 ================= */
 /* シートを開いている間に指で動かすと、後ろの画面がスクロールしてしまい、
@@ -34,11 +36,28 @@ function useBodyLock() {
 
 /* ================= 画面スリープ防止 ================= */
 /* トレーニング中に画面が消えないようにする。
-   Wake Lock API は対応していない端末・ブラウザがあるので、使えなければ何もしない */
+
+   iOS のアプリの中身は WKWebView で、ここには Wake Lock API が無い。
+   ブラウザ用の実装だけだと、いちばん必要な「実機のアプリでタイマーを見ている間」に
+   何もしないままになってしまう。ネイティブでは KeepAwake プラグインを使う。
+
+     ネイティブ … @capacitor-community/keep-awake
+     ブラウザ   … navigator.wakeLock（非対応なら何もしない）              */
 function useWakeLock(active) {
   useEffect(() => {
-    if (!active || typeof navigator === "undefined" || !navigator.wakeLock) return;
-    let lock = null, dead = false;
+    if (!active) return;
+    let dead = false;
+
+    if (isNative()) {
+      KeepAwake.keepAwake().catch(() => { /* 非対応・拒否 */ });
+      return () => {
+        dead = true;
+        KeepAwake.allowSleep().catch(() => { /* すでに解除済み */ });
+      };
+    }
+
+    if (typeof navigator === "undefined" || !navigator.wakeLock) return;
+    let lock = null;
     const acquire = async () => {
       try {
         const l = await navigator.wakeLock.request("screen");

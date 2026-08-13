@@ -64,14 +64,22 @@ function capPhotos(list) {
   return [s[0], ...s.slice(-(PHOTO_MAX - 1))];
 }
 
+/* 写真の持ち方は2通りある。どちらも data がそのまま <img src> に渡せる。
+     ブラウザ   … { date, data: "data:image/jpeg;base64,…" }
+     ネイティブ … { date, file: "2026-08-13.jpg", data: "capacitor://…" }
+   引き継ぎの文字列や古い保存には前者しか入っていないので、両方を通す。 */
+const isPhotoSrc = (p) =>
+  typeof p.data === "string" &&
+  (p.data.startsWith("data:image/") || (typeof p.file === "string" && p.file.length > 0));
+
 function normalizePhotos(raw) {
   /* 引き継ぎデータに同じ日付が2枚あると、一覧のキーが重なって表示が崩れる */
   const seen = new Set();
   return capPhotos(
     (Array.isArray(raw) ? raw : [])
-      .filter((p) => isPlainObj(p) && isDateKey(p.date) && typeof p.data === "string" && p.data.startsWith("data:image/"))
+      .filter((p) => isPlainObj(p) && isDateKey(p.date) && isPhotoSrc(p))
       .filter((p) => (seen.has(p.date) ? false : (seen.add(p.date), true)))
-      .map((p) => ({ date: p.date, data: p.data }))
+      .map((p) => (typeof p.file === "string" ? { date: p.date, file: p.file, data: p.data } : { date: p.date, data: p.data }))
   );
 }
 
