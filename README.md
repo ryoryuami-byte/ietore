@@ -5,8 +5,13 @@
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173（同じ Wi-Fi のスマホからも開けます）
+npm run dev         # http://localhost:5173（同じ Wi-Fi のスマホからも開けます）
+npm run build:demo  # dist-demo/ietore.html — 1枚のHTML。開くだけで試せます
 ```
+
+`build:demo` で作られる HTML は、インストールせずに触ってもらうためのものです。
+ネイティブの機能（お知らせ・共有シート・画面スリープ防止）はブラウザでは動きませんが、
+画面と組み立てはすべて本物どおりです。
 
 - **発売の手順 → [docs/RELEASE.md](docs/RELEASE.md)**
 - ストア掲載の素材と文章 → [store/](store/)
