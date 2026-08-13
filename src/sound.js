@@ -47,9 +47,28 @@ function tick() {
     o.start(t0); o.stop(t0 + 0.1);
   } catch (e) { /* 何もしない */ }
 }
+/* テンポ音。「3秒で下ろす」を刻む。
+   下ろすときと上げるときで高さを変え、折り返しが耳で分かるようにする。
+   刻み音（tick）より低く短くして、残り3秒の合図と取り違えないようにする */
+function beepTempo(down) {
+  try {
+    if (!soundOn) return;
+    unlockAudio();
+    if (!audioCtx) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    const t0 = audioCtx.currentTime;
+    o.frequency.value = down ? 330 : 440; o.type = "triangle";
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.exponentialRampToValueAtTime(0.07, t0 + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.06);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t0); o.stop(t0 + 0.07);
+  } catch (e) { /* 何もしない */ }
+}
+
 function signal(strong) {
   beep(strong ? 3 : 1);
   buzz(strong ? [120, 80, 120, 80, 220] : [180]);
 }
 
-export { setSoundEnabled, signal, tick, unlockAudio };
+export { beepTempo, setSoundEnabled, signal, tick, unlockAudio };

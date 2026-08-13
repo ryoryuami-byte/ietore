@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Preferences } from "@capacitor/preferences";
-import { REST_SEC } from "./utils.js";
+import { defaults } from "./settings.js";
 import { hydratePhotos, offloadPhotos } from "./photoFiles.js";
 import { isNative } from "./platform.js";
 
@@ -21,14 +21,13 @@ const K_LOG = "hometrain:log:v1";
 const K_PHOTOS = "hometrain:photos:v1";
 const K_LEGACY = "hometrain:v5";
 
+/* 設定（オン・オフや選択肢）の初期値は settings.js が持っている。
+   ここには「設定ではないもの」だけを書く */
 const DEFAULT_CORE = {
-  name: "", profile: null, plan: null, weights: [], trackWeight: true, cheers: [], notifyTime: "20:00",
-  restSec: REST_SEC, sound: true, weekSeen: "",
-  /* v18 で追加 */
-  consent: null,      /* 注意書きと規約に同意した記録 */
-  health: [],         /* 初回に聞いた健康状態 */
-  notifyOn: true,     /* お知らせを使うか。端末側の許可とは別 */
-  notifyAsked: false, /* 通知の許可を1回でも求めたか */
+  name: "", profile: null, plan: null, weights: [], cheers: [], weekSeen: "",
+  consent: null, /* 注意書きと規約に同意した記録 */
+  health: [],    /* 初回に聞いた健康状態 */
+  ...defaults(),
 };
 
 /* window.storage はプレビュー環境（Claudeのアーティファクト）にしか無い。

@@ -1,14 +1,19 @@
 import { useState, useEffect, useRef } from "react";
 import { Fig } from "./Fig.jsx";
+import {
+  sayDone, sayExercise, sayRemain, sayRest, saySwitchSide,
+  startCountdown, startRepCount, startTempo,
+} from "../coach.js";
 import { EX, PHASE_META, phaseOf } from "../exercises.js";
 import { useBodyLock, useCountdown, useWakeLock } from "../hooks.js";
 import { spec, specText, timerSec } from "../logic/progress.js";
 import { signal, tick } from "../sound.js";
+import { cancelSpeech } from "../speech.js";
 import { BODY, C, DISPLAY, DOTS, sticker } from "../tokens.js";
 import { REST_SEC, mmss } from "../utils.js";
 
 /* ================= 連続モード ================= */
-function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, done, onSet, onClose, onFinishAll }) {
+function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, core = {}, done, onSet, onClose, onFinishAll }) {
   const specOf = (x) => spec(EX[x], lv, stage, half);
   const [i, setI] = useState(() => {
     const f = ids.findIndex((x) => (done[x] ?? 0) < specOf(x).sets);
@@ -17,6 +22,14 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, done, onSet, 
   const [resting, setResting] = useState(false);
   const { endAt, remain, start, stop } = useCountdown();
   const lastTick = useRef(null);
+  const lastSay = useRef(null);
+  const halfSaid = useRef(false);
+
+  /* 声かけは coach.js が受け持つ。ここは「いつ呼ぶか」だけ */
+  const [counting, setCounting] = useState(0);
+  const stopCoach = useRef(null);
+  const runCoach = (fn) => { stopCoach.current?.(); stopCoach.current = fn; };
+  useEffect(() => () => { stopCoach.current?.(); cancelSpeech(); }, []);
 
   /* 連続モードの間はずっと画面を消さない */
   useWakeLock(true);
@@ -31,11 +44,19 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, done, onSet, 
   const shown = endAt == null ? dur : remain;
 
   useEffect(() => {
-    if (endAt == null || remain == null) { lastTick.current = null; return; }
+    if (endAt == null || remain == null) { lastTick.current = null; lastSay.current = null; return; }
+    if (!resting && lastSay.current !== remain) {
+      lastSay.current = remain;
+      sayRemain(core, remain);
+      if (ex.perSide && !halfSaid.current && remain === sp.amount) {
+        halfSaid.current = true;
+        saySwitchSide(core);
+      }
+    }
     if (remain > 3 || remain <= 0 || lastTick.current === remain) return;
     lastTick.current = remain;
     tick();
-  }, [remain, endAt]);
+  }, [remain, endAt, resting, core, ex.perSide, sp.amount]);
 
   useEffect(() => {
     if (endAt == null || remain == null || remain > 0) return;
@@ -43,8 +64,47 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, done, onSet, 
     if (resting) { setResting(false); signal(false); return; }
     signal(true);
     onSet(id, 1);
-    if (setsDone + 1 < sp.sets) { setResting(true); start(restSec); }
+    halfSaid.current = false;
+    if (setsDone + 1 < sp.sets) {
+      setResting(true);
+      start(restSec);
+      sayRest(core, restSec);
+    } else {
+      sayDone(core);
+    }
   }, [remain, endAt]);
+
+  /* 種目が切り替わったら、次に何をやるかを読み上げる */
+  useEffect(() => {
+    stopCoach.current?.();
+    stopCoach.current = null;
+    setCounting(0);
+    halfSaid.current = false;
+    sayExercise(core, id, sp);
+    /* 種目が変わったときだけ。設定の変更で言い直さない */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const beginTimed = () => {
+    runCoach(startCountdown(core, () => { stopCoach.current = null; start(dur); }));
+  };
+
+  const beginReps = () => {
+    runCoach(startCountdown(core, () => {
+      const stopTempo = startTempo(core);
+      const stopCount = startRepCount(core, sp.amount, () => {
+        stopTempo();
+        setCounting(0);
+        stopCoach.current = null;
+        signal(true);
+        onSet(id, 1);
+      }, { onCount: setCounting });
+      stopCoach.current = () => { stopTempo(); stopCount(); setCounting(0); };
+    }));
+    setCounting(1);
+  };
+
+  const stopReps = () => { stopCoach.current?.(); stopCoach.current = null; setCounting(0); };
 
   const allDone = ids.every((x) => (done[x] ?? 0) >= specOf(x).sets);
   const thisDone = setsDone >= sp.sets;
@@ -52,6 +112,7 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, done, onSet, 
   const ratio = endAt == null ? 1 : shown / dur;
 
   const goNext = () => {
+    stopCoach.current?.(); stopCoach.current = null; setCounting(0);
     stop(); setResting(false);
     if (i + 1 < ids.length) setI(i + 1);
     else onFinishAll(allDone); /* 未達なら完了扱いにしない */
@@ -93,11 +154,21 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, done, onSet, 
                   {shown >= 60 ? mmss(shown) : shown}
                 </text>
               </svg>
-              <button onClick={() => (endAt ? stop() : start(dur))} disabled={thisDone && !resting}
+              <button onClick={() => (endAt ? stop() : resting ? start(dur) : beginTimed())} disabled={thisDone && !resting}
                 style={{ background: thisDone && !resting ? C.line : endAt ? C.lav : C.pink, color: thisDone && !resting ? C.muted : C.ink, fontFamily: DISPLAY, ...sticker(thisDone && !resting ? C.line : endAt ? "#8C6BD6" : "#E96A97") }}
                 className="fx w-full rounded-full py-4 text-base font-bold mt-5">
                 {thisDone && !resting ? "この種目は完了" : endAt ? "一時停止" : resting ? "休憩をはじめる" : "スタート"}
               </button>
+              {resting && endAt != null && (
+                <div className="grid grid-cols-2 gap-3 w-full mt-3">
+                  <button onClick={() => { stop(); setResting(false); }}
+                    style={{ borderColor: C.lineDeep, color: C.muted }}
+                    className="fx border-2 rounded-full py-2.5 text-xs font-bold">休憩をとばす</button>
+                  <button onClick={() => start(remain + 15)}
+                    style={{ borderColor: C.lineDeep, color: C.muted }}
+                    className="fx border-2 rounded-full py-2.5 text-xs font-bold">＋15秒</button>
+                </div>
+              )}
               {ex.perSide && !resting && (
                 <p style={{ color: C.muted }} className="text-xs mt-3 text-center leading-relaxed">
                   左右あわせた長さです。半分（{sp.amount}秒）たったら反対側に替えてください。
@@ -114,11 +185,32 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, done, onSet, 
                 {setsDone}<span style={{ color: C.muted }} className="text-2xl"> / {sp.sets}</span>
               </p>
               <p style={{ color: C.muted }} className="text-xs mb-5">セット</p>
-              <button onClick={() => { onSet(id, 1); signal(setsDone + 1 >= sp.sets); }} disabled={thisDone}
-                style={{ background: thisDone ? C.line : C.pink, color: thisDone ? C.muted : C.ink, fontFamily: DISPLAY, ...sticker(thisDone ? C.line : "#E96A97") }}
-                className="fx w-full rounded-full py-5 text-lg font-bold">
-                {thisDone ? "この種目は完了" : "1セット できた"}
-              </button>
+              {counting > 0 ? (
+                <>
+                  <p style={{ fontFamily: DISPLAY, color: C.pinkDeep }} className="text-6xl font-bold leading-none mb-1">
+                    {counting}<span style={{ color: C.muted }} className="text-2xl"> / {sp.amount}</span>
+                  </p>
+                  <p aria-live="polite" className="sr-only">{counting}回目</p>
+                  <button onClick={stopReps}
+                    style={{ background: C.lav, color: C.ink, fontFamily: DISPLAY, ...sticker("#8C6BD6") }}
+                    className="fx w-full rounded-full py-4 text-base font-bold mt-4">やめる</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => { onSet(id, 1); signal(setsDone + 1 >= sp.sets); }} disabled={thisDone}
+                    style={{ background: thisDone ? C.line : C.pink, color: thisDone ? C.muted : C.ink, fontFamily: DISPLAY, ...sticker(thisDone ? C.line : "#E96A97") }}
+                    className="fx w-full rounded-full py-5 text-lg font-bold">
+                    {thisDone ? "この種目は完了" : "1セット できた"}
+                  </button>
+                  {!thisDone && (
+                    <button onClick={beginReps}
+                      style={{ borderColor: C.lineDeep, color: C.muted }}
+                      className="fx w-full border-2 rounded-full py-3 text-sm font-bold mt-3">
+                      🔊 数えてもらう（{sp.amount}回）
+                    </button>
+                  )}
+                </>
+              )}
             </>
           )}
 

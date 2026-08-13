@@ -2,7 +2,8 @@ import { EX, FOCUS_META } from "../exercises.js";
 import { buildPlan, planIsValid } from "./plan.js";
 import { LEVELS, STAGE_MAX } from "./progress.js";
 import { DEFAULT_CORE } from "../storage.js";
-import { REST_OPTIONS, REST_SEC, clamp, dateKey } from "../utils.js";
+import { normalizeSettings } from "../settings.js";
+import { clamp, dateKey } from "../utils.js";
 
 /* ================= 読み込んだ値の検証 ================= */
 /* 初回読み込みと「引き継ぎの読み込み」で同じ処理を通す。
@@ -23,10 +24,8 @@ function normalizeCore(raw) {
     .sort((a, b) => (a.date < b.date ? -1 : 1));
   c.cheers = (Array.isArray(c.cheers) ? c.cheers : [])
     .filter((x) => typeof x === "string" && x.trim()).map((x) => x.slice(0, 120)).slice(0, 50);
-  c.trackWeight = c.trackWeight !== false;
-  c.notifyTime = /^\d{2}:\d{2}$/.test(c.notifyTime ?? "") ? c.notifyTime : "20:00";
-  c.restSec = REST_OPTIONS.includes(Number(c.restSec)) ? Number(c.restSec) : REST_SEC;
-  c.sound = c.sound !== false;
+  /* オン・オフや選択肢は settings.js が定義と検証をまとめて持っている */
+  Object.assign(c, normalizeSettings(c));
   c.weekSeen = isDateKey(c.weekSeen) ? c.weekSeen : "";
   /* 同意した記録。バージョンを持たせて、文面を大きく変えたときに取り直せるようにする */
   c.consent = isPlainObj(c.consent) && Number(c.consent.v) > 0
@@ -35,9 +34,6 @@ function normalizeCore(raw) {
   /* 健康状態の答え。知らない値が混ざっても落ちないよう、文字列だけに絞る */
   c.health = (Array.isArray(c.health) ? c.health : [])
     .filter((x) => typeof x === "string" && x.length <= 20).slice(0, 10);
-  /* お知らせ。既定は「入」。実際に鳴るかは端末側の許可しだい */
-  c.notifyOn = c.notifyOn !== false;
-  c.notifyAsked = c.notifyAsked === true;
   c.profile = isPlainObj(c.profile) ? c.profile : null;
   if (!c.profile) c.plan = null;
   else if (!planIsValid(c.plan)) c.plan = buildPlan(c.profile);

@@ -5,6 +5,8 @@ import { CONTACT } from "../legal.js";
 import { FOCUS_META } from "../exercises.js";
 import { notifySupported, sendTest } from "../notify.js";
 import { photosForExport } from "../photoFiles.js";
+import { groupsOf, isEnabled } from "../settings.js";
+import { speechSupported } from "../speech.js";
 import { SESSIONS_PER_STAGE, STAGE_MAX, STAGE_STEP, lvMeta } from "../logic/progress.js";
 import { LegalText } from "./Legal.jsx";
 import { ConfirmSheet } from "./LogView.jsx";
@@ -13,7 +15,7 @@ import { DAY_JP, REST_OPTIONS, REST_SEC, toArr } from "../utils.js";
 
 /* ================= せってい ================= */
 function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, onResetPlan, onCheers,
-  onNotify, onToggleNotify, onEraseAll, onImport, onRest, onToggleSound }) {
+  onNotify, onToggleNotify, onEraseAll, onImport, onRest, onSet, onToggleSound }) {
   const [draft, setDraft] = useState("");
   const [showTransfer, setShowTransfer] = useState(false);
   const [importText, setImportText] = useState("");
@@ -166,6 +168,61 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
       </div>
 
       {/* 休憩の長さ */}
+      {/* 動きながら使う。settings.js の group:"coach" から自動で作る。
+          設定を足したいときは settings.js に1行足すだけでよい */}
+      <p style={{ color: C.muted }} className="text-xs mb-2 px-1">動きながら使う</p>
+      <div style={card()} className="border-2 rounded-3xl px-5 py-5 mb-2">
+        {!speechSupported() && (
+          <p style={{ color: C.pinkDeep }} className="text-xs leading-relaxed mb-3 font-bold" role="alert">
+            この端末は読み上げに対応していないため、声の案内は鳴りません。音とテンポは使えます。
+          </p>
+        )}
+        {groupsOf(["coach"])[0]?.items.map((item, n) => {
+          const enabled = isEnabled(item, core);
+          const value = core[item.id];
+          return (
+            <div key={item.id} className={n === 0 ? "" : "mt-5"}
+              style={enabled ? undefined : { opacity: .45 }}>
+              <p style={{ fontFamily: DISPLAY }} className="text-sm font-bold mb-2">{item.label}</p>
+
+              {item.type === "toggle" && (
+                <button onClick={() => enabled && onSet(item.id, value === false)}
+                  disabled={!enabled} aria-pressed={value !== false}
+                  style={{ borderColor: C.lineDeep, color: C.ink }}
+                  className="fx w-full border-2 rounded-2xl px-4 py-3 text-left text-sm font-bold">
+                  {value !== false ? "オン — タップでオフ" : "オフ — タップでオン"}
+                </button>
+              )}
+
+              {item.type === "choice" && (
+                <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={item.label}>
+                  {item.options.map(([val, lbl]) => {
+                    const active = String(value) === String(val);
+                    return (
+                      <button key={String(val)} onClick={() => enabled && onSet(item.id, val)}
+                        disabled={!enabled} role="radio" aria-checked={active}
+                        style={active
+                          ? { background: C.pink, color: C.ink, borderColor: C.pink, ...sticker("#E96A97") }
+                          : { background: C.surface, color: C.ink, borderColor: C.line }}
+                        className="fx border-2 rounded-2xl py-3 text-xs font-bold">
+                        {lbl}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {item.note && (
+                <p style={{ color: C.muted }} className="text-xs leading-relaxed mt-2">{item.note}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-7 px-1">
+        読み上げには端末に入っている音声を使います。文字がどこかへ送られることはありません。
+      </p>
+
       <p style={{ color: C.muted }} className="text-xs mb-2 px-1">セット間の休憩</p>
       <div style={card()} className="border-2 rounded-3xl px-5 py-5 mb-7">
         <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="セット間の休憩">

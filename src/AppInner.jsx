@@ -4,6 +4,7 @@ import { FigStyles } from "./components/Fig.jsx";
 import { SessionRunner } from "./components/SessionRunner.jsx";
 import { Center, CheerScreen, ExRow, Header, Section, SwapDialog, WelcomeBack } from "./components/common.jsx";
 import { FeelingSheet, NotifyAskSheet, SkipSheet } from "./components/sheets.jsx";
+import { applyCoachSettings } from "./coach.js";
 import { LEGAL_VERSION } from "./legal.js";
 import { requestPermission, syncSchedule } from "./notify.js";
 import { Consent } from "./screens/Consent.jsx";
@@ -17,6 +18,7 @@ import { LogView, WeekReview } from "./screens/LogView.jsx";
 import { Questionnaire } from "./screens/Questionnaire.jsx";
 import { SaveBanner, Settings, TabBar } from "./screens/Settings.jsx";
 import { setSoundEnabled, unlockAudio } from "./sound.js";
+import { warmUp } from "./speech.js";
 import { DEFAULT_CORE, eraseEverything, K_CORE, K_LEGACY, K_LOG, K_PHOTOS, readJSON, useAutoSave, writeJSON } from "./storage.js";
 import { BODY, C, DISPLAY, DOTS, card, sticker } from "./tokens.js";
 import { REST_OPTIONS, REST_SEC, clamp, dateKey, daysBetween } from "./utils.js";
@@ -58,9 +60,12 @@ function AppInner() {
   }, []);
   /* 設定の音オン／オフを反映する */
   useEffect(() => { setSoundEnabled(core.sound); }, [core.sound]);
-  /* 最初のタップで音を使えるようにしておく（iOS対策） */
+  /* 声かけの設定（オン・オフ／速さ）を反映する */
+  useEffect(() => { applyCoachSettings(core); }, [core]);
+  /* 最初のタップで音と読み上げを使えるようにしておく（iOS対策）。
+     iOS は利用者が画面を触るまで、音も声も出せない */
   useEffect(() => {
-    const once = () => unlockAudio();
+    const once = () => { unlockAudio(); warmUp(); };
     document.addEventListener("pointerdown", once, { once: true });
     return () => document.removeEventListener("pointerdown", once);
   }, []);
@@ -275,7 +280,7 @@ function AppInner() {
 
   if (detail) {
     return (
-      <ExerciseDetail id={detail} lv={dayLv} stage={dayStage} half={dayHalf} restSec={restSec}
+      <ExerciseDetail id={detail} lv={dayLv} stage={dayStage} half={dayHalf} restSec={restSec} core={core}
         sets={setsDone(detail)} target={targetSets(detail)}
         onAdd={(d) => addSet(detail, d)} onClose={() => setDetail(null)} />
     );
@@ -428,6 +433,8 @@ function AppInner() {
             onToggleSound={() => setCore((prev) => ({ ...prev, sound: prev.sound === false }))}
             onToggleWeight={() => setCore((prev) => ({ ...prev, trackWeight: !prev.trackWeight }))}
             onResetPlan={() => setCore((prev) => ({ ...prev, plan: buildPlan(profile) }))}
+            /* settings.js に1行足せば、この1本で読み書きできる */
+            onSet={(id, value) => setCore((prev) => ({ ...prev, [id]: value }))}
             onToggleNotify={async (want) => {
               /* 「入」にするときだけ、端末の許可を確かめる */
               const ok = want ? await requestPermission() : false;
@@ -461,7 +468,7 @@ function AppInner() {
       )}
 
       {running && (
-        <SessionRunner ids={dayIds} lv={dayLv} stage={dayStage} half={dayHalf} restSec={restSec} done={rec?.ex ?? {}}
+        <SessionRunner ids={dayIds} lv={dayLv} stage={dayStage} half={dayHalf} restSec={restSec} core={core} done={rec?.ex ?? {}}
           onSet={(id, d) => addSet(id, d)} onClose={() => setRunning(false)}
           onFinishAll={(allDone) => {
             setRunning(false);

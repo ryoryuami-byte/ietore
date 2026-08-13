@@ -1,34 +1,65 @@
 import { useState, useEffect, useRef } from "react";
 import { Fig, FigStyles } from "./Fig.jsx";
+import {
+  sayDone, sayExercise, sayRemain, sayRest, saySwitchSide,
+  startCountdown, startRepCount, startTempo,
+} from "../coach.js";
 import { EX, PHASE_META, phaseOf } from "../exercises.js";
 import { useCountdown, useWakeLock } from "../hooks.js";
 import { spec, specText, timerSec } from "../logic/progress.js";
 import { signal, tick } from "../sound.js";
+import { cancelSpeech } from "../speech.js";
 import { BODY, C, DISPLAY, DOTS, card, sticker } from "../tokens.js";
 import { REST_SEC, mmss } from "../utils.js";
 
 /* ================= 種目詳細＋タイマー＋セット ================= */
-function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC, onAdd, onClose }) {
+function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC, core = {}, onAdd, onClose }) {
   const ex = EX[id];
   const sp = spec(ex, lv, stage, half);
   const [resting, setResting] = useState(false);
   const { endAt, remain, start, stop } = useCountdown();
   const lastTick = useRef(null);
+  const lastSay = useRef(null);
+  const halfSaid = useRef(false);
+
+  /* 声かけ（カウントダウン・回数を数える・テンポ音）は coach.js が受け持つ。
+     ここは「いつ呼ぶか」だけを決める */
+  const [counting, setCounting] = useState(0); /* 0=していない / n=n回目 */
+  const stopCoach = useRef(null);
+  const runCoach = (fn) => { stopCoach.current?.(); stopCoach.current = fn; };
+  useEffect(() => () => stopCoach.current?.(), []);
 
   const isTime = ex.type === "time";
   const dur = resting ? restSec : timerSec(ex, sp);
   const shown = endAt == null ? dur : remain;
 
   /* タイマー中は画面を消さない */
-  useWakeLock(endAt != null);
+  useWakeLock(endAt != null || counting > 0);
 
-  /* 残り3・2・1を小さい音で刻む */
+  /* 開いたときに、これから何をやるかを読み上げる */
   useEffect(() => {
-    if (endAt == null || remain == null) { lastTick.current = null; return; }
+    sayExercise(core, id, sp);
+    return () => cancelSpeech();
+    /* 種目が変わったときだけ。設定の変更で言い直さない */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  /* 残り3・2・1を小さい音で刻む。節目は声でも知らせる */
+  useEffect(() => {
+    if (endAt == null || remain == null) { lastTick.current = null; lastSay.current = null; return; }
+    if (!resting && lastSay.current !== remain) {
+      lastSay.current = remain;
+      sayRemain(core, remain);
+      /* 左右の種目は、半分たったところで切り替えを伝える */
+      if (ex.perSide && !halfSaid.current && remain === sp.amount) {
+        halfSaid.current = true;
+        saySwitchSide(core);
+      }
+    }
     if (remain > 3 || remain <= 0 || lastTick.current === remain) return;
     lastTick.current = remain;
     tick();
-  }, [remain, endAt]);
+  }, [remain, endAt, resting, core, ex.perSide, sp.amount]);
 
   /* 0になったときの処理。setState の中ではなく effect で行う（二重加算を防ぐ） */
   useEffect(() => {
@@ -37,8 +68,40 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
     if (resting) { setResting(false); signal(false); return; }
     signal(true);
     onAdd(1);
-    if (sets + 1 < target) { setResting(true); start(restSec); }
+    halfSaid.current = false;
+    if (sets + 1 < target) {
+      setResting(true);
+      start(restSec);
+      sayRest(core, restSec);
+    } else {
+      sayDone(core);
+    }
   }, [remain, endAt]);
+
+  /* 「3、2、1、はじめ」のあとにタイマー／回数数えを始める */
+  const beginTimed = () => {
+    runCoach(startCountdown(core, () => {
+      stopCoach.current = null;
+      start(dur);
+    }));
+  };
+
+  const beginReps = () => {
+    runCoach(startCountdown(core, () => {
+      const stopTempo = startTempo(core);
+      const stopCount = startRepCount(core, sp.amount, () => {
+        stopTempo();
+        setCounting(0);
+        stopCoach.current = null;
+        signal(true);
+        onAdd(1);
+      }, { onCount: setCounting });
+      stopCoach.current = () => { stopTempo(); stopCount(); setCounting(0); };
+    }));
+    setCounting(1);
+  };
+
+  const stopReps = () => { stopCoach.current?.(); stopCoach.current = null; setCounting(0); };
 
   const ratio = endAt == null ? 1 : shown / dur;
   const R = 58, circ = 2 * Math.PI * R;
@@ -103,15 +166,53 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
               <button onClick={() => { stop(); setResting(false); }}
                 style={{ borderColor: C.lineDeep, color: C.muted }}
                 className="fx border-2 rounded-full py-3 text-sm font-bold">リセット</button>
-              <button onClick={() => (endAt ? stop() : start(dur))}
+              <button onClick={() => (endAt ? stop() : resting ? start(dur) : beginTimed())}
                 style={{ background: endAt ? C.lav : C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker(endAt ? "#8C6BD6" : "#E96A97") }}
                 className="fx rounded-full py-3 text-sm font-bold">
                 {endAt ? "一時停止" : resting ? "休憩をはじめる" : "スタート"}
               </button>
             </div>
+
+            {/* 休憩は待つだけの時間なので、待ちたくない人のために出口を作る */}
+            {resting && endAt != null && (
+              <div className="grid grid-cols-2 gap-3 w-full mt-3">
+                <button onClick={() => { stop(); setResting(false); }}
+                  style={{ borderColor: C.lineDeep, color: C.muted }}
+                  className="fx border-2 rounded-full py-2.5 text-xs font-bold">休憩をとばす</button>
+                <button onClick={() => start(remain + 15)}
+                  style={{ borderColor: C.lineDeep, color: C.muted }}
+                  className="fx border-2 rounded-full py-2.5 text-xs font-bold">＋15秒</button>
+              </div>
+            )}
             <p style={{ color: C.muted }} className="text-xs mt-4 text-center leading-relaxed">
               0になると1セット加算され、そのまま{restSec}秒の休憩が始まります（長さは設定で変えられます）。
               {ex.perSide && `左右あわせた長さです。半分（${sp.amount}秒）たったら反対側に替えてください。`}
+            </p>
+          </div>
+        )}
+
+        {/* 回数の種目：テンポに合わせて数えてもらう */}
+        {!isTime && (
+          <div style={card()} className="border-2 rounded-3xl px-5 py-6 mb-4 flex flex-col items-center">
+            <p style={{ color: C.muted }} className="text-xs mb-3 font-bold">
+              {counting > 0 ? "数えています" : "数えてもらう"}
+            </p>
+            <p style={{ fontFamily: DISPLAY }} className="text-5xl font-bold leading-none mb-1">
+              {counting > 0 ? counting : "–"}
+              <span style={{ color: C.muted }} className="text-xl"> / {sp.amount}</span>
+            </p>
+            <p aria-live="polite" className="sr-only">{counting > 0 ? `${counting}回目` : ""}</p>
+            <button onClick={() => (counting > 0 ? stopReps() : beginReps())}
+              style={counting > 0
+                ? { background: C.lav, color: C.ink, fontFamily: DISPLAY, ...sticker("#8C6BD6") }
+                : { background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+              className="fx w-full rounded-full py-3 text-sm font-bold mt-4">
+              {counting > 0 ? "やめる" : "はじめる"}
+            </button>
+            <p style={{ color: C.muted }} className="text-xs mt-4 text-center leading-relaxed">
+              テンポに合わせて数えます。数え終わると1セット記録されます。
+              {ex.perSide && "左右それぞれで1回ずつ行ってください。"}
+              声と音は、せっていの「動きながら使う」で変えられます。
             </p>
           </div>
         )}
