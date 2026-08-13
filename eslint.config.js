@@ -47,8 +47,8 @@ export default [
     },
   },
   {
-    /* 設定ファイルは Node の文脈で動く */
-    files: ["*.config.js"],
+    /* 設定ファイルとビルド用スクリプトは Node の文脈で動く */
+    files: ["*.config.js", "scripts/**/*.mjs"],
     languageOptions: { globals: { ...globals.node } },
   },
 ];

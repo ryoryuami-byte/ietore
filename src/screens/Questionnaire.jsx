@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Fig, FigStyles } from "../components/Fig.jsx";
+import { bodyGoal } from "../logic/bodyGoal.js";
 import { ACTIVITY_LEVEL, AREA_Q, AVOID_Q, EMPTY_PROFILE, NUM_Q, REASON_Q, SELECT_Q, TENDENCY_Q } from "../questions.js";
 import { BODY, C, DISPLAY, DOTS, card, sticker } from "../tokens.js";
 import { toArr } from "../utils.js";
@@ -40,24 +41,11 @@ function Questionnaire({ mode, initial, initialName, onSubmit, onCancel }) {
   const numErrors = NUM_Q.filter((q) => !(q.id === "weightGoal" && minorAge(f.age))).map(numError).filter(Boolean);
   const canSubmit = missing.length === 0 && numErrors.length === 0;
 
-  /* age はここでは使っていない（未成年の判定は下の minor が持っている）。
-     元のコードのまま残しているが、Phase 4 で削ってよい */
-  // eslint-disable-next-line no-unused-vars
-  const age = Number(f.age), now = Number(f.weightNow), goal = Number(f.weightGoal), h = Number(f.height);
   const minor = minorAge(f.age);
-  const bmi = (kg) => (h > 0 && kg > 0 ? kg / ((h / 100) ** 2) : null);
-  const bmiNow = bmi(now);
-  const lowNow = bmiNow != null && bmiNow < 18.5;
-  /* 体重の3%を引くだけだと、範囲内の人にアプリ側から範囲外の目標を出してしまう。
-     （例：158cm / 47kg は範囲内だが、3%引くと 45.6kg で範囲外）
-     下限で止め、引いた先が今とほとんど変わらない人には減量目標を出さない */
-  const floorKg = h > 0 ? Math.ceil(18.5 * ((h / 100) ** 2) * 10) / 10 : null;
-  const rawGoal = now > 0 && !lowNow ? Math.round(now * 0.97 * 10) / 10 : null;
-  const firstGoal = rawGoal == null ? null : floorKg == null ? rawGoal : Math.max(rawGoal, floorKg);
-  const goalAtFloor = firstGoal != null && rawGoal != null && firstGoal > rawGoal;
-  const nearFloor = firstGoal != null && firstGoal >= now - 0.05;
-  const goalBmi = bmi(goal);
-  const tooLow = goalBmi != null && goalBmi < 18.5;
+  /* 計算は logic/bodyGoal.js に出してある（v17.2 で不具合が出た箇所なので、
+     テストが書ける形にした）。中身は変えていない */
+  const { lowNow, firstGoal, goalAtFloor, nearFloor, tooLow } =
+    bodyGoal({ heightCm: f.height, nowKg: f.weightNow, goalKg: f.weightGoal });
 
   return (
     <div style={{ background: C.bg, backgroundImage: DOTS, color: C.ink, fontFamily: BODY, minHeight: "100dvh" }} className="min-h-screen pb-32">
