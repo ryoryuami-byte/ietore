@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: 依存を入れる
+        run: npm ci
+
+      - name: lint
+        run: npm run lint
+
+      - name: テスト
+        run: npm test
+
+      - name: ビルド
+        run: npm run build
+
+      # 分割したモジュールが Tailwind のクラスを取りこぼしていないか。
+      # content の指定を間違えると CSS が急に小さくなるので、下限で見張る
+      - name: CSS が生成されているか確かめる
+        run: |
+          size=$(find dist/assets -name '*.css' -exec wc -c {} + | tail -1 | awk '{print $1}')
+          echo "CSS: ${size} バイト"
+          if [ "$size" -lt 8000 ]; then
+            echo "::error::CSS が小さすぎます。tailwind.config.js の content を確認してください"
+            exit 1
+          fi

@@ -1,0 +1,39 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# ログ
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# エディタ
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Capacitor / iOS
+ios/App/App/public/
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/DerivedData/
+*.xcuserstate
+
+# Capacitor / Android
+android/app/src/main/assets/public/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/release/
+*.keystore
+!debug.keystore
+
+# テスト
+coverage/

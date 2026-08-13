@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover が無いと env(safe-area-inset-*) が常に 0 になり、
+         コード側で入れているホームインジケータ対策がまったく効かない。
+         useViewportFit が後から足してもくれるが、初回描画のちらつきを避けるため
+         ここにも書いておく -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <!-- 数字の入力欄をタップしたときに iOS が拡大するのを防ぐ（文字サイズは16px以上にしてある） -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="theme-color" content="#FFF3F7" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="イエトレ" />
+    <meta
+      name="description"
+      content="家でできる筋トレと有酸素のメニューを、体の状態と続けやすさに合わせて自動で組み立てます。"
+    />
+    <title>イエトレ</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

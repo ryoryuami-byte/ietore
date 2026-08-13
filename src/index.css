@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   アプリ側の style / className に無いぶんだけを、ここで補う。
+   画面の色や配置はコード側（tokens.js）が持っているので、ここには置かない。
+   --------------------------------------------------------------------------- */
+
+html {
+  /* iOS で横向きにしたときに文字だけ勝手に大きくなるのを止める */
+  -webkit-text-size-adjust: 100%;
+  /* 引っぱったときの跳ね返りを消す。ネイティブの殻に入れると特に不自然に見える */
+  overscroll-behavior-y: none;
+}
+
+body {
+  /* 画面より中身が短いときに、下に白が出ないようにする */
+  background: #fff3f7;
+  margin: 0;
+  overscroll-behavior-y: none;
+  /* 長押しで文字が選択されたり、iOS のコピー吹き出しが出るのを防ぐ。
+     入力欄と、読み上げ・コピーさせたい箇所だけ下で戻す */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+[data-selectable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 引き継ぎの文字列は選択してコピーできないと困る */
+#export-box,
+#import-box {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* iOS は文字サイズが 16px 未満の入力欄をタップすると画面を拡大する。
+   アプリ側は text-base（16px）で書かれているが、取りこぼしの保険 */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Tailwind の preflight はボタンの背景を透明にするが、
+   アプリ側はすべて style で背景を指定しているので問題ない。
+   フォントだけ body から継がせる */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
