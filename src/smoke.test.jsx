@@ -4,9 +4,13 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
+import { LEGAL_VERSION } from "./legal.js";
 import { buildPlan } from "./logic/plan.js";
 import { planIsValid } from "./logic/plan.js";
 import { EMPTY_PROFILE } from "./questions.js";
+
+/* 同意済みの状態。v18 から、これが無いと質問に進めない */
+const CONSENT = { v: LEGAL_VERSION, at: "2026-08-13T00:00:00.000Z" };
 
 const PROFILE = {
   ...EMPTY_PROFILE,
@@ -22,7 +26,34 @@ describe("アプリの起動", () => {
     document.body.innerHTML = "";
   });
 
-  it("記録が無い状態で、初回診断の画面まで描画できる", async () => {
+  it("まっさらな状態では、まず注意書きと同意の画面が出る", async () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const root = createRoot(el);
+    await act(async () => root.render(<App />));
+    expect(el.textContent).toContain("はじめる前に");
+    expect(el.textContent).toContain("痛みが出たら、すぐにやめてください");
+    /* 同意する前に質問へ進ませない */
+    expect(el.textContent).not.toContain("いくつか教えてください");
+    await act(async () => root.unmount());
+  });
+
+  it("すでにプロフィールがあっても、同意がまだなら同意画面を出す", async () => {
+    /* v17.2 から更新した人。注意書きを一度も見ていないので、1回だけ出す */
+    window.localStorage.setItem(
+      "hometrain:core:v1",
+      JSON.stringify({ name: "テスト", profile: PROFILE, plan: buildPlan(PROFILE) })
+    );
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const root = createRoot(el);
+    await act(async () => root.render(<App />));
+    expect(el.textContent).toContain("はじめる前に");
+    await act(async () => root.unmount());
+  });
+
+  it("同意済みで記録が無ければ、初回診断の画面まで描画できる", async () => {
+    window.localStorage.setItem("hometrain:core:v1", JSON.stringify({ consent: CONSENT }));
     const el = document.createElement("div");
     document.body.appendChild(el);
     const root = createRoot(el);
@@ -35,7 +66,7 @@ describe("アプリの起動", () => {
   it("保存済みのプロフィールがあれば、今日のメニューが描画できる", async () => {
     window.localStorage.setItem(
       "hometrain:core:v1",
-      JSON.stringify({ name: "テスト", profile: PROFILE, plan: buildPlan(PROFILE) })
+      JSON.stringify({ name: "テスト", profile: PROFILE, plan: buildPlan(PROFILE), consent: CONSENT })
     );
     const el = document.createElement("div");
     document.body.appendChild(el);

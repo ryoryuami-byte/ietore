@@ -24,6 +24,11 @@ const K_LEGACY = "hometrain:v5";
 const DEFAULT_CORE = {
   name: "", profile: null, plan: null, weights: [], trackWeight: true, cheers: [], notifyTime: "20:00",
   restSec: REST_SEC, sound: true, weekSeen: "",
+  /* v18 で追加 */
+  consent: null,      /* 注意書きと規約に同意した記録 */
+  health: [],         /* 初回に聞いた健康状態 */
+  notifyOn: true,     /* お知らせを使うか。端末側の許可とは別 */
+  notifyAsked: false, /* 通知の許可を1回でも求めたか */
 };
 
 /* window.storage はプレビュー環境（Claudeのアーティファクト）にしか無い。
@@ -83,6 +88,27 @@ async function writeJSON(key, value) {
   await writeRaw(key, JSON.stringify(value));
 }
 
+/* すべての記録を消す。
+
+   端末の中にしかデータが無いアプリなので、消す手段は自前で持つ必要がある。
+   写真の実体（ファイル）まで消さないと、アプリの見た目は空でも
+   端末の容量は減らないままになる。 */
+async function eraseEverything() {
+  /* 先に写真のファイルを片づける。offloadPhotos([]) は
+     「一覧に無いファイルを消す」ので、空の一覧を渡せば全部消える */
+  try { await offloadPhotos([]); } catch (e) { /* ファイルが無い場合など */ }
+
+  for (const key of [K_CORE, K_LOG, K_PHOTOS, K_LEGACY]) {
+    try {
+      if (isNative()) await Preferences.remove({ key });
+      else if (hasHostStorage()) await window.storage.set(key, "", false);
+      else if (hasLocal()) window.localStorage.removeItem(key);
+    } catch (e) {
+      /* 1つ消せなくても、残りは消しにいく */
+    }
+  }
+}
+
 /* 値が変わったときだけ、少し待ってから書き込む */
 function useAutoSave(key, value, ready, setErr) {
   const last = useRef(null);
@@ -100,4 +126,7 @@ function useAutoSave(key, value, ready, setErr) {
   }, [key, value, ready, setErr]);
 }
 
-export { DEFAULT_CORE, K_CORE, K_LEGACY, K_LOG, K_PHOTOS, readJSON, useAutoSave, writeJSON };
+export {
+  DEFAULT_CORE, eraseEverything, K_CORE, K_LEGACY, K_LOG, K_PHOTOS,
+  readJSON, useAutoSave, writeJSON,
+};

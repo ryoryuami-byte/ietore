@@ -1,19 +1,27 @@
 import { useState, useEffect, useRef } from "react";
+import { buildBackup, readBackupFile, shareBackup } from "../backup.js";
 import { FOCUS_META } from "../exercises.js";
+import { notifySupported, sendTest } from "../notify.js";
 import { photosForExport } from "../photoFiles.js";
 import { SESSIONS_PER_STAGE, STAGE_MAX, STAGE_STEP, lvMeta } from "../logic/progress.js";
+import { LegalText } from "./Legal.jsx";
 import { ConfirmSheet } from "./LogView.jsx";
 import { C, DISPLAY, card, sticker } from "../tokens.js";
 import { DAY_JP, REST_OPTIONS, REST_SEC, toArr } from "../utils.js";
 
 /* ================= せってい ================= */
 function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, onResetPlan, onCheers,
-  onNotify, onImport, onRest, onToggleSound }) {
+  onNotify, onToggleNotify, onEraseAll, onImport, onRest, onToggleSound }) {
   const [draft, setDraft] = useState("");
   const [showTransfer, setShowTransfer] = useState(false);
   const [importText, setImportText] = useState("");
   const [importMsg, setImportMsg] = useState("");
   const [confirmImport, setConfirmImport] = useState(null);
+  const [notifyMsg, setNotifyMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [doc, setDoc] = useState(null);
+  /* 全削除は二段階。1段目で意図を、2段目で「元に戻せない」ことを確かめる */
+  const [confirmErase, setConfirmErase] = useState(0);
   const cheers = core.cheers ?? [];
   const reasons = toArr(core.profile?.stopReason);
   const { stage, sessions } = info;
@@ -40,6 +48,8 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
   }, [showTransfer, core, log, photos]);
   /* 「用意しています…」やエラー文をコピーさせない */
   const exportReady = exportText.startsWith("{");
+
+  if (doc) return <LegalText which={doc} onClose={() => setDoc(null)} />;
 
   const tryImport = () => {
     setImportMsg("");
@@ -172,21 +182,65 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
         残り3秒からの刻み音と、終了の合図に使います。バイブは対応している端末だけで動きます。
       </p>
 
-      {/* 通知 */}
-      <p style={{ color: C.muted }} className="text-xs mb-2 px-1">お知らせの時刻</p>
+      {/* お知らせ */}
+      <p style={{ color: C.muted }} className="text-xs mb-2 px-1">お知らせ</p>
       <div style={card()} className="border-2 rounded-3xl px-5 py-5 mb-7">
+        <button
+          onClick={async () => {
+            setNotifyMsg("");
+            const want = core.notifyOn === false;
+            const ok = await onToggleNotify(want);
+            if (want && !ok) {
+              setNotifyMsg("端末の設定でお知らせが許可されていません。設定アプリ → 通知 → イエトレ から許可してください。");
+            }
+          }}
+          aria-pressed={core.notifyOn !== false}
+          style={{ borderColor: C.lineDeep, color: C.ink }}
+          className="fx w-full border-2 rounded-2xl px-4 py-3 text-left text-sm mb-3 font-bold">
+          {core.notifyOn !== false ? "オン — タップでオフ" : "オフ — タップでオン"}
+        </button>
+
         <label htmlFor="notify" className="sr-only">お知らせの時刻</label>
         <input id="notify" type="time" value={core.notifyTime ?? "20:00"} onChange={(e) => onNotify(e.target.value)}
-          style={{ background: C.bg, borderColor: C.lineDeep, color: C.ink }}
+          disabled={core.notifyOn === false}
+          style={{
+            background: core.notifyOn === false ? "#EFEAF0" : C.bg,
+            borderColor: C.lineDeep, color: core.notifyOn === false ? C.muted : C.ink,
+          }}
           className="fx w-full border-2 rounded-2xl px-4 py-3 text-base mb-3" />
+
+        {notifyMsg && (
+          <p style={{ color: C.pinkDeep }} className="text-xs leading-relaxed mb-2 font-bold" role="alert">{notifyMsg}</p>
+        )}
         {reasons.includes("forget") && (
           <p style={{ color: C.pinkDeep }} className="text-xs leading-relaxed mb-2 font-bold">
-            「やるのを忘れた」を選んでいます。同じ時刻に端末側のアラームも設定しておくと確実です。
+            「やるのを忘れた」を選んでいます。同じ時刻に端末側のアラームも設定しておくと、さらに確実です。
           </p>
         )}
-        <p style={{ color: C.muted }} className="text-xs leading-relaxed">
-          この画面では時刻を保存するだけで、通知そのものは鳴りません。iOSアプリにしたときに、この設定を使って通知を出す形になります。
+        <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-3">
+          この時刻に、その日のメニューをお知らせします。
+          <strong>やりきった日と、お休みにした日は鳴りません。</strong>
+          お知らせは端末の中だけで予約され、通信は使いません。
         </p>
+
+        {notifySupported() && core.notifyOn !== false && (
+          <button
+            onClick={async () => {
+              const ok = await sendTest();
+              setNotifyMsg(ok
+                ? "5秒後にお知らせが届きます。アプリを閉じて待ってみてください。"
+                : "いまは鳴らせませんでした。端末の設定で許可を確認してください。");
+            }}
+            style={{ borderColor: C.lineDeep, color: C.muted }}
+            className="fx w-full border-2 rounded-full py-3 text-xs font-bold">
+            ためしに鳴らす（5秒後）
+          </button>
+        )}
+        {!notifySupported() && (
+          <p style={{ color: C.muted }} className="text-xs leading-relaxed">
+            ブラウザで開いている間は鳴りません。アプリとして入れると届くようになります。
+          </p>
+        )}
       </div>
 
       <p style={{ color: C.muted }} className="text-xs mb-2 px-1">体重の記録（日曜日）</p>
@@ -199,13 +253,61 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
       <p style={{ color: C.muted }} className="text-xs mb-2 px-1">データの引き継ぎ</p>
       <div style={card()} className="border-2 rounded-3xl px-5 py-5 mb-7">
         <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-3">
-          記録はこの端末の中だけに保存されています。機種変更やアプリの入れ直しに備えて、
-          ときどき下の文字列をコピーして、メモアプリなどに貼っておいてください。
+          記録はこの端末の中だけに保存されています。こちらでお預かりしているものは無く、
+          <strong>端末を失うと元に戻せません。</strong>
+          機種変更やアプリの入れ直しに備えて、ときどきファイルに書き出しておいてください。
         </p>
+
+        {/* ファイルで書き出す（推奨） */}
+        <button
+          onClick={async () => {
+            setImportMsg("");
+            setBusy(true);
+            try {
+              const data = await buildBackup({ core, log, photos });
+              const r = await shareBackup(data);
+              setImportMsg(r.ok
+                ? "書き出しました。「ファイル」やクラウドなど、端末を替えても残る場所に保存してください。"
+                : "書き出しをやめました。もう一度お試しください。");
+            } catch (e) {
+              setImportMsg("書き出せませんでした。写真が読み出せなかった可能性があります。");
+            } finally {
+              setBusy(false);
+            }
+          }}
+          disabled={busy}
+          style={busy
+            ? { background: C.line, color: C.muted, fontFamily: DISPLAY }
+            : { background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+          className="fx w-full rounded-full py-4 text-sm font-bold mb-2">
+          {busy ? "用意しています…" : "📤 ファイルに書き出す"}
+        </button>
+
+        {/* ファイルから読み込む */}
+        <label style={{ borderColor: C.lineDeep, color: C.muted }}
+          className="fx block w-full border-2 rounded-full py-3 text-xs font-bold text-center cursor-pointer mb-3">
+          📥 ファイルから読み込む
+          <input type="file" accept="application/json,.json" className="sr-only"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              setImportMsg("");
+              try {
+                setConfirmImport(await readBackupFile(file));
+              } catch (err) {
+                setImportMsg(`読み込めませんでした。${err.message ?? ""}`);
+              }
+            }} />
+        </label>
+
+        {importMsg && <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-3">{importMsg}</p>}
+
+        {/* 文字列でのやりとりも残す（共有が使えない環境のため） */}
         <button onClick={() => setShowTransfer((v) => !v)}
-          style={{ borderColor: C.lineDeep, color: C.muted }}
-          className="fx w-full border-2 rounded-full py-3 text-xs font-bold">
-          {showTransfer ? "閉じる" : "書き出し・読み込みを開く"}
+          style={{ color: C.muted }}
+          className="fx w-full rounded-full py-2 text-xs font-bold">
+          {showTransfer ? "文字列でのやりとりを閉じる" : "文字列でやりとりする（うまくいかないとき）"}
         </button>
 
         {showTransfer && (
@@ -240,10 +342,35 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
             <button onClick={tryImport} disabled={!importText.trim()}
               style={{ borderColor: importText.trim() ? C.pinkDeep : C.line, color: importText.trim() ? C.pinkDeep : C.muted }}
               className="fx w-full border-2 rounded-full py-3 text-sm font-bold">読み込む</button>
-            {importMsg && <p style={{ color: C.muted }} className="text-xs mt-2">{importMsg}</p>}
           </div>
         )}
       </div>
+
+      {/* 決まりごと */}
+      <p style={{ color: C.muted }} className="text-xs mb-2 px-1">決まりごと</p>
+      <div className="grid gap-2 mb-7">
+        {[["health", "はじめる前に（安全のための注意）"],
+          ["privacy", "プライバシーポリシー"],
+          ["terms", "利用規約"]].map(([id, label]) => (
+          <button key={id} onClick={() => setDoc(id)} style={card()}
+            className="fx w-full border-2 rounded-3xl px-5 py-3 text-left text-sm font-bold flex items-center">
+            <span className="flex-1">{label}</span>
+            <span style={{ color: C.muted }} aria-hidden="true">›</span>
+          </button>
+        ))}
+      </div>
+
+      {/* すべて消す。いちばん下に置き、色でも他と区別する */}
+      <p style={{ color: C.muted }} className="text-xs mb-2 px-1">記録を消す</p>
+      <button onClick={() => setConfirmErase(1)}
+        style={{ background: C.surface, borderColor: C.pinkDeep, color: C.pinkDeep }}
+        className="fx w-full border-2 rounded-3xl px-5 py-4 text-left text-sm font-bold mb-2">
+        すべての記録を消す
+      </button>
+      <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-7 px-1">
+        記録・写真・設定のすべてを消して、はじめての状態に戻します。元には戻せません。
+        残しておきたいものがあれば、先に上の「ファイルに書き出す」を済ませてください。
+      </p>
 
       <p style={{ color: C.muted }} className="text-xs leading-relaxed px-1 mb-4">
         月に1回、同じ場所・同じ服装で写真を撮っておくと変化がわかりやすくなります。
@@ -256,6 +383,28 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
           confirmLabel="置き換える"
           onCancel={() => setConfirmImport(null)}
           onConfirm={() => { onImport(confirmImport); setConfirmImport(null); setImportText(""); setImportMsg("読み込みました"); }} />
+      )}
+
+      {/* 全削除の1段目：何が消えるかを具体的に見せる */}
+      {confirmErase === 1 && (
+        <ConfirmSheet
+          title="すべての記録を消しますか？"
+          body={`やりきった日 ${Object.values(log ?? {}).filter((r) => r?.done).length} 日ぶん、`
+            + `写真 ${photos.length} 枚、体重の記録 ${(core.weights ?? []).length} 回ぶん、`
+            + "そのほか設定とプロフィールがすべて消えます。"}
+          confirmLabel="消す前に確認する"
+          onCancel={() => setConfirmErase(0)}
+          onConfirm={() => setConfirmErase(2)} />
+      )}
+
+      {/* 2段目：戻せないことだけを聞く */}
+      {confirmErase === 2 && (
+        <ConfirmSheet
+          title="本当に消しますか？"
+          body="元には戻せません。こちらでお預かりしているデータは無いので、復元もできません。"
+          confirmLabel="すべて消す"
+          onCancel={() => setConfirmErase(0)}
+          onConfirm={async () => { setConfirmErase(0); await onEraseAll(); }} />
       )}
     </div>
   );

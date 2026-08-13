@@ -3,6 +3,39 @@ import { useBodyLock } from "../hooks.js";
 import { Choice } from "../screens/Questionnaire.jsx";
 import { BODY, C, DISPLAY, card, sticker } from "../tokens.js";
 
+/* ================= お知らせの許可を聞く ================= */
+/* 出すタイミングは「1回目をやりきった直後」。
+   初回診断のあとすぐに聞くと、まだ価値が伝わっていないので断られやすい。
+   一度きりで、断られたらもう出さない（設定からいつでも入れられる）。 */
+function NotifyAskSheet({ time, onAllow, onLater }) {
+  useBodyLock();
+  return (
+    <div className="fixed inset-0 flex items-end justify-center z-30" role="dialog" aria-modal="true"
+      style={{ background: "rgba(74,50,66,.5)" }}>
+      <div style={{ background: C.surface, fontFamily: BODY, paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 32px)" }}
+        className="w-full max-w-md rounded-t-3xl px-5 pt-6">
+        <p className="text-4xl mb-3 text-center" aria-hidden="true">🔔</p>
+        <h3 style={{ fontFamily: DISPLAY }} className="text-xl font-bold mb-2 text-center">
+          明日も声をかけましょうか？
+        </h3>
+        <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-5 text-center">
+          毎日 {time} ごろに、その日のメニューをお知らせします。<br />
+          やりきった日とお休みにした日は鳴りません。<br />
+          時刻はあとから設定で変えられます。
+        </p>
+        <button onClick={onAllow}
+          style={{ background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+          className="fx w-full rounded-full py-4 text-base font-bold mb-2">
+          お知らせを受け取る
+        </button>
+        <button onClick={onLater} style={{ color: C.muted }} className="fx w-full rounded-full py-3 text-sm font-bold">
+          いまはしない
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ================= 体感を聞く ================= */
 const FEELINGS = [
   ["hard", "きつかった", "😵", "量を少し戻します"],
@@ -78,4 +111,4 @@ function SkipSheet({ onClose, onSave }) {
   );
 }
 
-export { FeelingSheet, SkipSheet };
+export { FeelingSheet, NotifyAskSheet, SkipSheet };

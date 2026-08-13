@@ -28,6 +28,16 @@ function normalizeCore(raw) {
   c.restSec = REST_OPTIONS.includes(Number(c.restSec)) ? Number(c.restSec) : REST_SEC;
   c.sound = c.sound !== false;
   c.weekSeen = isDateKey(c.weekSeen) ? c.weekSeen : "";
+  /* 同意した記録。バージョンを持たせて、文面を大きく変えたときに取り直せるようにする */
+  c.consent = isPlainObj(c.consent) && Number(c.consent.v) > 0
+    ? { v: Number(c.consent.v), at: typeof c.consent.at === "string" ? c.consent.at : "" }
+    : null;
+  /* 健康状態の答え。知らない値が混ざっても落ちないよう、文字列だけに絞る */
+  c.health = (Array.isArray(c.health) ? c.health : [])
+    .filter((x) => typeof x === "string" && x.length <= 20).slice(0, 10);
+  /* お知らせ。既定は「入」。実際に鳴るかは端末側の許可しだい */
+  c.notifyOn = c.notifyOn !== false;
+  c.notifyAsked = c.notifyAsked === true;
   c.profile = isPlainObj(c.profile) ? c.profile : null;
   if (!c.profile) c.plan = null;
   else if (!planIsValid(c.plan)) c.plan = buildPlan(c.profile);

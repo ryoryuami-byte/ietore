@@ -1,9 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { ExerciseDetail } from "./components/ExerciseDetail.jsx";
 import { FigStyles } from "./components/Fig.jsx";
 import { SessionRunner } from "./components/SessionRunner.jsx";
 import { Center, CheerScreen, ExRow, Header, Section, SwapDialog, WelcomeBack } from "./components/common.jsx";
-import { FeelingSheet, SkipSheet } from "./components/sheets.jsx";
+import { FeelingSheet, NotifyAskSheet, SkipSheet } from "./components/sheets.jsx";
+import { LEGAL_VERSION } from "./legal.js";
+import { requestPermission, syncSchedule } from "./notify.js";
+import { Consent } from "./screens/Consent.jsx";
 import { EX, FOCUS_META, PHASE_META, PHASE_ORDER, phaseOf } from "./exercises.js";
 import { shrinkImage } from "./image.js";
 import { buildDay, buildPlan, estimateMin, levelOf, mainIdOf, planIsValid, shortIds } from "./logic/plan.js";
@@ -14,7 +17,7 @@ import { LogView, WeekReview } from "./screens/LogView.jsx";
 import { Questionnaire } from "./screens/Questionnaire.jsx";
 import { SaveBanner, Settings, TabBar } from "./screens/Settings.jsx";
 import { setSoundEnabled, unlockAudio } from "./sound.js";
-import { DEFAULT_CORE, K_CORE, K_LEGACY, K_LOG, K_PHOTOS, readJSON, useAutoSave, writeJSON } from "./storage.js";
+import { DEFAULT_CORE, eraseEverything, K_CORE, K_LEGACY, K_LOG, K_PHOTOS, readJSON, useAutoSave, writeJSON } from "./storage.js";
 import { BODY, C, DISPLAY, DOTS, card, sticker } from "./tokens.js";
 import { REST_OPTIONS, REST_SEC, clamp, dateKey, daysBetween } from "./utils.js";
 
@@ -36,6 +39,7 @@ function AppInner() {
   const [askFeeling, setAskFeeling] = useState(false);
   const [skipOpen, setSkipOpen] = useState(false);
   const [weekOpen, setWeekOpen] = useState(false);
+  const [notifyAsk, setNotifyAsk] = useState(false);
 
   /* 日付は起動時に固定しない。日をまたいだら記録先を切り替える */
   const [todayKey, setTodayKey] = useState(() => dateKey(new Date()));
@@ -145,6 +149,37 @@ function AppInner() {
 
   const levelInfo = useMemo(() => stageOf(log), [log]);
 
+  /* お知らせの予約を入れ直す。
+
+     記録は1セットごとに変わるので、そのたびに予約し直すのは無駄。
+     「これが変わったら入れ直す」という文字列を作り、それが変わったときだけ動かす。 */
+  const notifySig = useMemo(() => {
+    if (!plan) return "";
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(todayKey + "T00:00:00");
+      d.setDate(d.getDate() + i);
+      const k = dateKey(d);
+      const r = log[k];
+      days.push(`${k}${r?.done ? "D" : ""}${r?.skip ? "S" : ""}:${plan[d.getDay()]?.focus ?? ""}`);
+    }
+    return `${core.notifyTime}|${core.notifyOn === false ? "off" : "on"}|${days.join(",")}`;
+  }, [core.notifyTime, core.notifyOn, plan, log, todayKey]);
+
+  const lastNotifySig = useRef(null);
+  useEffect(() => {
+    if (!ready || !core.profile || !plan) return;
+    if (lastNotifySig.current === notifySig) return;
+    lastNotifySig.current = notifySig;
+    syncSchedule({
+      notifyTime: core.notifyTime,
+      notifyOn: core.notifyOn,
+      plan,
+      log,
+      today: new Date(todayKey + "T00:00:00"),
+    });
+  }, [ready, core.profile, core.notifyTime, core.notifyOn, plan, log, todayKey, notifySig]);
+
   /* 日曜だけ、その週に1回「今週のまとめ」を自動で開く */
   useEffect(() => {
     if (!ready || !core.profile) return;
@@ -154,6 +189,17 @@ function AppInner() {
   }, [ready, core.profile, core.weekSeen, todayKey]);
 
   if (!ready) return <Center>よみこみ中…</Center>;
+
+  /* いちばん先に、注意書きと規約。
+     すでに使っている人にも、更新後の初回に1度だけ出る（consent がまだ無いため）。
+     健康関連のアプリで、ここを飛ばして運動をさせるわけにはいかない */
+  if (!core.consent || core.consent.v < LEGAL_VERSION) {
+    return (
+      <Consent onAgree={(health) => setCore((prev) => ({
+        ...prev, health, consent: { v: LEGAL_VERSION, at: new Date().toISOString() },
+      }))} />
+    );
+  }
 
   /* 初回：プロフィール診断 */
   if (!profile) {
@@ -262,6 +308,9 @@ function AppInner() {
     }));
     setAskFeeling(false);
     setCheerOn(true);
+    /* 通知の許可は、ここで1回だけ聞く。
+       初回診断の直後だとまだ価値が伝わっておらず、断られやすい */
+    if (!core.notifyAsked) setNotifyAsk(true);
   };
 
   return (
@@ -379,6 +428,20 @@ function AppInner() {
             onToggleSound={() => setCore((prev) => ({ ...prev, sound: prev.sound === false }))}
             onToggleWeight={() => setCore((prev) => ({ ...prev, trackWeight: !prev.trackWeight }))}
             onResetPlan={() => setCore((prev) => ({ ...prev, plan: buildPlan(profile) }))}
+            onToggleNotify={async (want) => {
+              /* 「入」にするときだけ、端末の許可を確かめる */
+              const ok = want ? await requestPermission() : false;
+              setCore((prev) => ({ ...prev, notifyAsked: true, notifyOn: want ? ok : false }));
+              return want ? ok : true;
+            }}
+            onEraseAll={async () => {
+              await eraseEverything();
+              /* 画面側も初期状態へ。読み直さずに、その場で戻す */
+              setLog({});
+              setPhotos([]);
+              setCore(DEFAULT_CORE);
+              setTab("today");
+            }}
             onImport={(data) => {
               /* 初回読み込みと同じ検証を通す */
               setCore(normalizeCore(data.core));
@@ -428,6 +491,19 @@ function AppInner() {
       {cheerOn && (
         <CheerScreen name={core.name} streak={stats.streak} weeks={stats.weeks} leveledUp={leveledUp}
           cheers={core.cheers ?? []} onClose={() => { setCheerOn(false); setLeveledUp(false); }} />
+      )}
+
+      {/* ほめる画面のあとに出す。断られても、もう聞かない */}
+      {notifyAsk && !cheerOn && (
+        <NotifyAskSheet time={core.notifyTime ?? "20:00"}
+          onLater={() => { setNotifyAsk(false); setCore((prev) => ({ ...prev, notifyAsked: true, notifyOn: false })); }}
+          onAllow={async () => {
+            const ok = await requestPermission();
+            setNotifyAsk(false);
+            /* 端末側で断られたら、アプリ側も切っておく。
+               「入」なのに鳴らない状態を作らない */
+            setCore((prev) => ({ ...prev, notifyAsked: true, notifyOn: ok }));
+          }} />
       )}
 
       {saveError && <SaveBanner onClose={() => setSaveError(false)} />}
