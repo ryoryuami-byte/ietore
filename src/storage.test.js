@@ -63,14 +63,14 @@ describe("写真の検証", () => {
     expect(r).toHaveLength(1);
   });
 
-  it("13枚を超えると、いちばん古い1枚は残したまま12枚に収まる", () => {
-    const many = Array.from({ length: 20 }, (_, i) => ({
-      date: `2026-01-${String(i + 1).padStart(2, "0")}`,
+  it("上限を超えると、いちばん古い1枚は残したまま上限に収まる", () => {
+    const many = Array.from({ length: 40 }, (_, i) => ({
+      date: `2026-${String(Math.floor(i / 28) + 1).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}`,
       data: PNG,
     }));
     const r = normalizePhotos(many);
-    expect(r).toHaveLength(12);
+    expect(r).toHaveLength(24);
     expect(r[0].date).toBe("2026-01-01");
-    expect(r[11].date).toBe("2026-01-20");
+    expect(r[23].date).toBe(many[39].date);
   });
 });

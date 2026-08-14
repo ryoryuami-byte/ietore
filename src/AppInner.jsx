@@ -287,6 +287,14 @@ function AppInner() {
     return { ...prev, [k]: { ...base, ...cur, ex: { ...(cur.ex ?? {}), [id]: now > 0 ? 0 : t } } };
   });
 
+  /* 写真。日付は呼び出し側が決める。記録の「今日」からも、
+     カレンダーの過去の日からも、同じこの1つを使う（v18.6） */
+  const addPhoto = async (k, file) => {
+    const data = await shrinkImage(file);
+    setPhotos((prev) => capPhotos([...prev.filter((p) => p.date !== k), { date: k, data }]));
+  };
+  const deletePhoto = (k) => setPhotos((prev) => prev.filter((p) => p.date !== k));
+
   const gap = stats.lastTrained ? daysBetween(stats.lastTrained, todayKey) : 0;
   const welcomeBack = stats.lastTrained && gap >= 3 && !trainedToday
     && dayPlan.focus !== "rest" && !rec?.skip && rec?.short === undefined;
@@ -471,16 +479,14 @@ function AppInner() {
               weights: [...(prev.weights ?? []).filter((w) => w.date !== todayKey), { date: todayKey, kg, waist, thigh }]
                 .sort((a, b) => (a.date < b.date ? -1 : 1)),
             }))}
-            onPhoto={async (file) => {
-              const data = await shrinkImage(file);
-              setPhotos((prev) => capPhotos([...prev.filter((p) => p.date !== todayKey), { date: todayKey, data }]));
-            }}
-            onDeletePhoto={(d) => setPhotos((prev) => prev.filter((p) => p.date !== d))} />
+            onPhoto={(file) => addPhoto(todayKey, file)}
+            onDeletePhoto={deletePhoto} />
         )}
 
         {tab === "cal" && (
           <CalendarView log={log} plan={plan} today={today} todayKey={todayKey}
             weeks={stats.weeks} focusOn={stats.focusOn} trainedOn={stats.trained} lv={lv} stage={stage}
+            photos={photos} onPhoto={addPhoto} onDeletePhoto={deletePhoto}
             onEditDay={editDay} onToggleDayEx={toggleDayEx}
             onNote={(k, text) => setLog((prev) => ({ ...prev, [k]: { ...(prev[k] ?? { ex: {} }), note: text } }))} />
         )}

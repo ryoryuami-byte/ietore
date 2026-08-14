@@ -201,7 +201,7 @@ function SwapDialog({ current, onClose, onConfirm }) {
   const list = ["lower", "core", "upper", "cardio", "full", "rest"];
   useBodyLock();
   return (
-    <div className="fixed inset-0 flex items-end justify-center z-20" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
+    <div className="fixed inset-0 flex items-end justify-center z-30" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
       {/* vh だと iOS でアドレスバーぶん下がはみ出し、決定ボタンが隠れる */}
       <div style={{ background: C.surface, fontFamily: BODY, maxHeight: "88dvh" }} className="w-full max-w-md rounded-t-3xl flex flex-col">
         {step === 0 ? (

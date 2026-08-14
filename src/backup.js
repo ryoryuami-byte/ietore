@@ -90,7 +90,7 @@ function parseBackup(text) {
 }
 
 /* File オブジェクトを読む。10MB を超えるものは弾く
-   （写真12枚ぶんでも 1MB 程度。それより桁違いに大きいものは別のファイル） */
+   （写真24枚ぶんでも 2MB 程度。それより桁違いに大きいものは別のファイル） */
 async function readBackupFile(file) {
   if (!file) throw new Error("ファイルが選ばれていません");
   if (file.size > 10 * 1024 * 1024) throw new Error("ファイルが大きすぎます");

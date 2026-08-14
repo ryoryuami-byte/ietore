@@ -138,14 +138,14 @@ describe("normalizeLog", () => {
 describe("normalizePhotos", () => {
   const PNG = "data:image/jpeg;base64,AAAA";
 
-  it("12枚を超えたら、いちばん古い1枚は残す", () => {
-    /* v14 で直した。新しい12枚を残すと「見くらべのまえ」が真っ先に消えていた */
-    const many = Array.from({ length: 30 }, (_, i) => ({
-      date: `2026-01-${String(i + 1).padStart(2, "0")}`, data: PNG,
+  it("上限を超えたら、いちばん古い1枚は残す", () => {
+    /* v14 で直した。新しい分だけ残すと「見くらべのまえ」が真っ先に消えていた */
+    const many = Array.from({ length: 40 }, (_, i) => ({
+      date: `2026-${String(Math.floor(i / 28) + 1).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}`, data: PNG,
     }));
     const r = normalizePhotos(many);
-    expect(r).toHaveLength(12);
-    expect(r[0].date).toBe("2026-01-01");
+    expect(r).toHaveLength(24);
+    expect(r[0].date).toBe(many[0].date);
   });
 
   it("同じ日付が2枚あると1枚にする", () => {

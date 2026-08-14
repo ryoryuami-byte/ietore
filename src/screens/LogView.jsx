@@ -4,6 +4,7 @@ import { BadgeGrid, badgeList } from "../components/badges.jsx";
 import { EX } from "../exercises.js";
 import { useBodyLock } from "../hooks.js";
 import { wantedAreas } from "../logic/plan.js";
+import { defaultPhotoOfMonth, monthLabel, monthsBetween, monthsWithPhotos, photosInMonth } from "../logic/photos.js";
 import { spec } from "../logic/progress.js";
 import { AREA_LABEL, areaTotals } from "../questions.js";
 import { BODY, C, card, DISPLAY, page, SCRIM, SCRIM_DEEP, sticker } from "../tokens.js";
@@ -24,7 +25,7 @@ import { DAY_JP, dateKey, daysBetween, toArr } from "../utils.js";
 
 /* ================= カレンダー ================= */
 function CalendarView({ log, plan, today, todayKey, weeks, focusOn, trainedOn, lv, stage,
-  onNote, onEditDay, onToggleDayEx }) {
+  photos, onNote, onEditDay, onToggleDayEx, onPhoto, onDeletePhoto }) {
   const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [picked, setPicked] = useState(null);
 
@@ -50,6 +51,7 @@ function CalendarView({ log, plan, today, todayKey, weeks, focusOn, trainedOn, l
   const pickedTargets = Object.fromEntries(pickedIds.map((id) => [
     id, spec(EX[id], pickedRec?.lv ?? lv, pickedRec?.stage ?? stage, pickedRec?.short === true).sets,
   ]));
+  const pickedPhoto = picked ? photos?.find((p) => p.date === picked) ?? null : null;
 
   return (
     <div className="mt-2">
@@ -119,6 +121,9 @@ function CalendarView({ log, plan, today, todayKey, weeks, focusOn, trainedOn, l
         <NoteSheet dateStr={picked} initial={log[picked]?.note ?? ""}
           trained={trainedOn(picked)} skip={log[picked]?.skip} done={!!log[picked]?.done}
           ids={pickedIds} exCounts={log[picked]?.ex ?? {}} targets={pickedTargets}
+          photo={pickedPhoto}
+          onAddPhoto={(file) => onPhoto?.(picked, file)}
+          onDeletePhoto={() => onDeletePhoto?.(picked)}
           onToggleEx={(id) => onToggleDayEx(picked, id)}
           onToggleDone={() => onEditDay(picked, { done: !log[picked]?.done })}
           onClose={() => setPicked(null)}
@@ -139,6 +144,8 @@ function RecordsView({ core, log, photos, today, todayKey, weeks, focusOn,
   const [photoErr, setPhotoErr] = useState("");
   const [delPhoto, setDelPhoto] = useState(null);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [monthlyOpen, setMonthlyOpen] = useState(false);
+  const photoMonths = useMemo(() => monthsWithPhotos(photos), [photos]);
 
   const weights = Array.isArray(core.weights) ? core.weights : [];
   const last = weights[weights.length - 1];
@@ -308,6 +315,13 @@ function RecordsView({ core, log, photos, today, todayKey, weeks, focusOn,
             🔍 2枚をえらんで見くらべる
           </button>
         )}
+        {photoMonths.length >= 2 && (
+          <button onClick={() => setMonthlyOpen(true)}
+            style={{ borderColor: C.pinkDeep, color: C.pinkDeep }}
+            className="fx w-full border-2 rounded-full py-3 text-sm font-bold mt-2">
+            📅 月ごとに見くらべる
+          </button>
+        )}
         {photos.length > 0 && <p style={{ color: C.muted }} className="text-xs mt-2 text-center">写真をタップすると削除できます（確認あり）</p>}
       </div>
 
@@ -317,6 +331,7 @@ function RecordsView({ core, log, photos, today, todayKey, weeks, focusOn,
       <BadgeGrid badges={badges} />
 
       {compareOpen && <PhotoCompare photos={photos} onClose={() => setCompareOpen(false)} />}
+      {monthlyOpen && <MonthlyPhotoCompare photos={photos} onClose={() => setMonthlyOpen(false)} />}
 
       {delPhoto && (
         <ConfirmSheet
@@ -358,12 +373,14 @@ function Legend({ color, label, border, dot }) {
 }
 
 function NoteSheet({ dateStr, initial, trained, skip, done, ids = [], exCounts = {}, targets = {},
-  onToggleEx, onToggleDone, onClose, onSave }) {
+  photo, onAddPhoto, onDeletePhoto, onToggleEx, onToggleDone, onClose, onSave }) {
   const [text, setText] = useState(initial);
+  const [photoErr, setPhotoErr] = useState("");
+  const [confirmDelPhoto, setConfirmDelPhoto] = useState(false);
   const d = new Date(dateStr + "T00:00:00");
   useBodyLock();
   return (
-    <div className="fixed inset-0 flex items-end justify-center z-20" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
+    <div className="fixed inset-0 flex items-end justify-center z-30" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
       <div style={{ background: C.surface, fontFamily: BODY, maxHeight: "88dvh", overflowY: "auto",
         paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 32px)" }}
         className="w-full max-w-md rounded-t-3xl px-5 pt-6">
@@ -408,6 +425,40 @@ function NoteSheet({ dateStr, initial, trained, skip, done, ids = [], exCounts =
             </p>
           </div>
         )}
+
+        {/* 写真。この日のぶんだけ1枚。カレンダーから、後の日づけでも入れられる（v18.6） */}
+        {onAddPhoto && (
+          <div className="mb-5">
+            <p style={{ fontFamily: DISPLAY }} className="text-sm font-bold mb-2">写真</p>
+            {photo ? (
+              <>
+                <img src={photo.data} alt={`${dateStr} に撮った記録写真`}
+                  className="w-full aspect-square object-cover rounded-2xl mb-2" />
+                <button onClick={() => setConfirmDelPhoto(true)}
+                  style={{ borderColor: C.lineDeep, color: C.muted }}
+                  className="fx w-full border-2 rounded-full py-2.5 text-xs font-bold">写真を消す</button>
+              </>
+            ) : (
+              <label style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
+                className="block rounded-full py-3 text-sm font-bold text-center cursor-pointer">
+                📷 この日の写真を追加
+                <input type="file" accept="image/*" className="sr-only"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setPhotoErr("");
+                    try { await onAddPhoto(file); } catch (err) { setPhotoErr(err.message ?? "保存できませんでした"); }
+                    e.target.value = "";
+                  }} />
+              </label>
+            )}
+            {photoErr && <p style={{ color: C.pinkDeep }} className="text-xs mt-2 font-bold">{photoErr}</p>}
+            <p style={{ color: C.muted }} className="text-xs leading-relaxed mt-2">
+              写真はこの端末の中だけに残ります。1日1枚、あとから撮り直すと前のものと入れ替わります。
+            </p>
+          </div>
+        )}
+
         <p style={{ fontFamily: DISPLAY }} className="text-sm font-bold mb-2">メモ</p>
         <label htmlFor="daynote" className="sr-only">この日のメモ</label>
         <textarea id="daynote" value={text} onChange={(e) => setText(e.target.value)} rows={4} maxLength={200}
@@ -423,6 +474,15 @@ function NoteSheet({ dateStr, initial, trained, skip, done, ids = [], exCounts =
             className="fx rounded-full py-3 text-sm font-bold">メモを保存する</button>
         </div>
       </div>
+
+      {confirmDelPhoto && (
+        <ConfirmSheet
+          title="この写真を削除しますか？"
+          body="削除すると元に戻せません。"
+          confirmLabel="削除する"
+          onCancel={() => setConfirmDelPhoto(false)}
+          onConfirm={() => { onDeletePhoto?.(); setConfirmDelPhoto(false); }} />
+      )}
     </div>
   );
 }
@@ -604,6 +664,111 @@ function PhotoCompare({ photos, onClose }) {
         <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-5">
           同じ場所・同じ服装・同じ時間帯で撮った2枚を選ぶと、いちばん違いが分かります。
           鏡ごしの写真は左右が反転するので、撮り方はそろえてください。
+        </p>
+        <button onClick={onClose}
+          style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
+          className="fx w-full rounded-full py-4 text-base font-bold">とじる</button>
+      </div>
+    </div>
+  );
+}
+
+/* ================= 写真の月ごとの見くらべ ================= */
+/* PhotoCompare が「どの2枚か」を自由に選ぶのに対して、こちらは「どの2か月か」を選ぶ。
+   月をまたいで撮る人がほとんどなので、1枚ずつ探すより月で行き来するほうが早い（v18.6）。
+   ‹ › は写真がある月だけを飛び石で移動する。空の月では止まらない。 */
+function MonthlyPhotoCompare({ photos, onClose }) {
+  useBodyLock();
+  const months = useMemo(() => monthsWithPhotos(photos), [photos]);
+  const [leftMonth, setLeftMonth] = useState(months[0]);
+  const [rightMonth, setRightMonth] = useState(months[months.length - 1]);
+  const [leftPick, setLeftPick] = useState(null);
+  const [rightPick, setRightPick] = useState(null);
+
+  const leftPhotos = photosInMonth(photos, leftMonth);
+  const rightPhotos = photosInMonth(photos, rightMonth);
+  const a = leftPhotos.find((p) => p.date === leftPick) ?? defaultPhotoOfMonth(photos, leftMonth);
+  const b = rightPhotos.find((p) => p.date === rightPick) ?? defaultPhotoOfMonth(photos, rightMonth);
+  const gap = Math.abs(monthsBetween(leftMonth, rightMonth));
+  const label = (d) => d.slice(5).replace("-", "/");
+
+  const shift = (which, dir) => {
+    const idx = months.indexOf(which === "left" ? leftMonth : rightMonth);
+    const next = months[idx + dir];
+    if (!next) return;
+    if (which === "left") { setLeftMonth(next); setLeftPick(null); }
+    else { setRightMonth(next); setRightPick(null); }
+  };
+
+  const stepper = (month, which) => {
+    const idx = months.indexOf(month);
+    const atStart = idx <= 0, atEnd = idx >= months.length - 1;
+    return (
+      <div className="flex items-center justify-center gap-1 mb-1.5">
+        <button onClick={() => shift(which, -1)} disabled={atStart} aria-label="前の月にある写真"
+          style={{ color: atStart ? C.line : C.pinkDeep }} className="fx w-7 h-7 shrink-0 rounded-full text-sm font-bold">‹</button>
+        <p style={{ fontFamily: DISPLAY }} className="text-xs font-bold w-20 text-center">{monthLabel(month)}</p>
+        <button onClick={() => shift(which, 1)} disabled={atEnd} aria-label="次の月にある写真"
+          style={{ color: atEnd ? C.line : C.pinkDeep }} className="fx w-7 h-7 shrink-0 rounded-full text-sm font-bold">›</button>
+      </div>
+    );
+  };
+
+  const strip = (list, value, onPick) => (
+    list.length > 1 && (
+      <div className="flex gap-1.5 overflow-x-auto pb-1 justify-center">
+        {list.map((p) => (
+          <button key={p.date} onClick={() => onPick(p.date)} aria-pressed={p.date === value?.date}
+            aria-label={`${p.date} の写真をえらぶ`}
+            style={{ borderColor: p.date === value?.date ? C.pinkDeep : C.line }}
+            className="fx shrink-0 border-2 rounded-2xl p-1">
+            <img src={p.data} alt="" className="w-10 h-10 object-cover rounded-xl" />
+          </button>
+        ))}
+      </div>
+    )
+  );
+
+  return (
+    <div className="fixed inset-0 z-30 overflow-y-auto" style={page()}>
+      <div className="max-w-md mx-auto px-5 pt-6"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
+        <button onClick={onClose} style={{ color: C.pinkDeep }} className="fx text-sm mb-4 font-bold">‹ きろくへ</button>
+        <h1 style={{ fontFamily: DISPLAY }} className="text-2xl font-bold mb-1">月ごとに見くらべる</h1>
+        <p style={{ color: C.muted }} className="text-xs mb-5">
+          {gap === 0 ? "同じ月です" : `${gap}ヶ月ぶんの差です`}
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 mb-2">
+          <div>{stepper(leftMonth, "left")}</div>
+          <div>{stepper(rightMonth, "right")}</div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          {[["まえ", a], ["いま", b]].map(([t, p]) => (
+            <div key={t}>
+              <p style={{ color: C.muted }} className="text-xs mb-1.5 text-center font-bold">{t}</p>
+              {p ? (
+                <img src={p.data} alt={`${p.date} に撮った記録写真`}
+                  className="w-full aspect-square object-cover rounded-3xl" />
+              ) : (
+                <div style={{ background: C.surface, borderColor: C.line }} className="w-full aspect-square rounded-3xl border-2" />
+              )}
+              <p style={{ color: C.ink, fontFamily: DISPLAY }} className="text-xs mt-1.5 text-center font-bold">
+                {p ? label(p.date) : "—"}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div>{strip(leftPhotos, a, setLeftPick)}</div>
+          <div>{strip(rightPhotos, b, setRightPick)}</div>
+        </div>
+
+        <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-5">
+          それぞれの月で、最初に撮った写真を自動でえらんでいます。
+          同じ月に2枚以上あるときは、上の小さな写真からえらび直せます。
         </p>
         <button onClick={onClose}
           style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}

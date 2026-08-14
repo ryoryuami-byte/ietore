@@ -80,10 +80,15 @@ function normalizeLog(raw) {
   return out;
 }
 
-/* 写真は端末の容量の都合で12枚まで。
-   v13は新しい12枚を残していたので、いっぱいになると「いちばん古い1枚」＝
-   見くらべの「まえ」にあたる写真から消えていた。最初の1枚だけは必ず残す。 */
-const PHOTO_MAX = 12;
+/* 写真の上限。
+   v13は新しい上限枚を残していたので、いっぱいになると「いちばん古い1枚」＝
+   見くらべの「まえ」にあたる写真から消えていた。最初の1枚だけは必ず残す。
+
+   v18.6 で 12 → 24 に上げた。写真はもう localStorage の base64 ではなく
+   端末のファイルに逃がしてある（photoFiles.js）ので、枚数は容量にほぼ効かない。
+   月1回のペースで2年ぶん。月ごとの見くらべ（logic/photos.js）を
+   意味のある長さで使えるようにするための数字で、上限そのものに強い理由はない。 */
+const PHOTO_MAX = 24;
 function capPhotos(list) {
   const s = (Array.isArray(list) ? list : []).slice().sort((a, b) => (a.date < b.date ? -1 : 1));
   if (s.length <= PHOTO_MAX) return s;

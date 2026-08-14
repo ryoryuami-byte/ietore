@@ -119,7 +119,7 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, core = {}, do
   };
 
   return (
-    <div style={page()} className="fixed inset-0 z-20 overflow-y-auto">
+    <div style={page()} className="fixed inset-0 z-30 overflow-y-auto">
       <div className="max-w-md mx-auto px-5 pt-6 min-h-full flex flex-col"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
         <div className="flex items-center justify-between mb-2">

@@ -46,7 +46,7 @@ const FEELINGS = [
 function FeelingSheet({ onPick, onClose }) {
   useBodyLock();
   return (
-    <div className="fixed inset-0 flex items-end justify-center z-20" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
+    <div className="fixed inset-0 flex items-end justify-center z-30" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
       <div style={{ background: C.surface, fontFamily: BODY, paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 32px)" }}
         className="w-full max-w-md rounded-t-3xl px-5 pt-6">
         <h3 style={{ fontFamily: DISPLAY }} className="text-xl font-bold mb-1">今日はどうでしたか？</h3>
@@ -79,7 +79,7 @@ function SkipSheet({ onClose, onSave }) {
   const [text, setText] = useState("");
   useBodyLock();
   return (
-    <div className="fixed inset-0 flex items-end justify-center z-20" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
+    <div className="fixed inset-0 flex items-end justify-center z-30" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
       <div style={{ background: C.surface, fontFamily: BODY, maxHeight: "88dvh" }} className="w-full max-w-md rounded-t-3xl flex flex-col">
         <div className="px-5 pt-6 pb-3">
           <h3 style={{ fontFamily: DISPLAY }} className="text-lg font-bold mb-1">今日はお休みにする</h3>
