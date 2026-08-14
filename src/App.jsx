@@ -85,7 +85,7 @@ class Boundary extends Component {
             コピーした内容は自動では送られません。送るかどうかは、あなたが決められます。
           </p>
           <button onClick={() => this.rebuild()}
-            style={{ background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+            style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
             className="fx w-full rounded-full py-4 text-base font-bold">
             メニューだけ作り直す（記録は残す）
           </button>

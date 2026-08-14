@@ -6,7 +6,7 @@ import { useBodyLock } from "../hooks.js";
 import { wantedAreas } from "../logic/plan.js";
 import { spec } from "../logic/progress.js";
 import { AREA_LABEL, areaTotals } from "../questions.js";
-import { BODY, C, DISPLAY, DOTS, card, sticker } from "../tokens.js";
+import { BODY, C, card, DISPLAY, page, sticker } from "../tokens.js";
 import { DAY_JP, dateKey, daysBetween, toArr } from "../utils.js";
 
 /* ================= きろく ================= */
@@ -256,7 +256,7 @@ function LogView({ core, log, photos, plan, today, todayKey, weeks, focusOn, tra
             ))}
           </div>
         )}
-        <label style={{ background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+        <label style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
           className="block rounded-full py-3 text-sm font-bold text-center cursor-pointer">
           📷 写真をえらぶ
           <input type="file" accept="image/*" className="sr-only"
@@ -396,7 +396,7 @@ function NoteSheet({ dateStr, initial, trained, skip, done, ids = [], exCounts =
           <button onClick={onClose} style={{ borderColor: C.lineDeep, color: C.muted }}
             className="fx border-2 rounded-full py-3 text-sm font-bold">とじる</button>
           <button onClick={() => onSave(text.trim())}
-            style={{ background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+            style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
             className="fx rounded-full py-3 text-sm font-bold">メモを保存する</button>
         </div>
       </div>
@@ -549,7 +549,7 @@ function PhotoCompare({ photos, onClose }) {
 
   return (
     <div className="fixed inset-0 z-30 overflow-y-auto"
-      style={{ background: C.bg, backgroundImage: DOTS, color: C.ink, fontFamily: BODY }}>
+      style={page()}>
       <div className="max-w-md mx-auto px-5 pt-6"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
         <button onClick={onClose} style={{ color: C.pinkDeep }} className="fx text-sm mb-4 font-bold">‹ きろくへ</button>
@@ -583,7 +583,7 @@ function PhotoCompare({ photos, onClose }) {
           鏡ごしの写真は左右が反転するので、撮り方はそろえてください。
         </p>
         <button onClick={onClose}
-          style={{ background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+          style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
           className="fx w-full rounded-full py-4 text-base font-bold">とじる</button>
       </div>
     </div>
@@ -680,7 +680,7 @@ function WeekReview({ log, today, weeks, streak, needWeight, onClose }) {
           </button>
         )}
         <button onClick={() => onClose(false)}
-          style={{ background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+          style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
           className="fx w-full rounded-full py-4 text-base font-bold">とじる</button>
       </div>
     </div>

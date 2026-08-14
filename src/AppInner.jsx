@@ -20,7 +20,7 @@ import { SaveBanner, Settings, TabBar } from "./screens/Settings.jsx";
 import { setSoundEnabled, unlockAudio } from "./sound.js";
 import { warmUp } from "./speech.js";
 import { DEFAULT_CORE, eraseEverything, K_CORE, K_LEGACY, K_LOG, K_PHOTOS, readJSON, useAutoSave, writeJSON } from "./storage.js";
-import { BODY, C, DISPLAY, DOTS, card, sticker } from "./tokens.js";
+import { alpha, C, card, DISPLAY, page, sticker } from "./tokens.js";
 import { REST_OPTIONS, REST_SEC, clamp, dateKey, daysBetween } from "./utils.js";
 
 /* ================= 本体 ================= */
@@ -319,9 +319,25 @@ function AppInner() {
   };
 
   return (
-    <div style={{ background: C.bg, backgroundImage: DOTS, color: C.ink, fontFamily: BODY, minHeight: "100dvh" }} className="min-h-screen pb-28">
+    <div style={page()} className="min-h-screen pb-28">
       <FigStyles />
-      <div className="max-w-md mx-auto px-5 pt-7">
+
+      {/* 上のタイトル帯。参照アプリと同じく、いまどこにいるかを常に出す。
+          地に溶けこませたいので、少しだけ透かしてぼかす */}
+      <div style={{
+        background: alpha("#FFFFFF", .82),
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        paddingTop: "env(safe-area-inset-top, 0px)",
+      }} className="sticky top-0 z-10">
+        <div className="max-w-md mx-auto px-5 h-12 flex items-center justify-center">
+          <h1 style={{ fontFamily: DISPLAY }} className="text-base font-bold">
+            {tab === "today" ? "きょう" : tab === "log" ? "きろく" : "せってい"}
+          </h1>
+        </div>
+      </div>
+
+      <div className="max-w-md mx-auto px-5 pt-5">
         {tab === "today" && (welcomeBack ? (
           <WelcomeBack id={mainIdOf(dayPlan.ids)} lv={lv} stage={stage} weeks={stats.weeks}
             onShort={() => { writeRec({ short: true }); setDetail(mainIdOf(dayPlan.ids)); }}
@@ -343,7 +359,7 @@ function AppInner() {
             )}
 
             <Section title="今日のトレーニング" note={meta.tone}
-              action={{ label: "🔄 メニューを入れ替える", onClick: () => setSwapOpen(true) }}>
+              action={{ label: "入れ替える", onClick: () => setSwapOpen(true) }}>
               {dayIds.some((id) => phaseOf(id) === "main") && (
                 <p style={{ color: C.muted }} className="text-xs px-1 leading-relaxed">
                   トレーニング（②）のめやす 約{estimateMin(dayIds, dayLv, dayStage, dayHalf, restSec)}分
@@ -371,7 +387,7 @@ function AppInner() {
 
             {!allExDone && (
               <button onClick={() => setRunning(true)}
-                style={{ background: C.lav, color: C.ink, fontFamily: DISPLAY, ...sticker("#8C6BD6") }}
+                style={{ background: C.lavText, color: "#fff", fontFamily: DISPLAY, ...sticker(C.lavText) }}
                 className="fx w-full rounded-full py-5 text-lg font-bold mt-5">
                 ▶︎ 連続モードではじめる
               </button>

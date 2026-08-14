@@ -9,7 +9,7 @@ import { useCountdown, useWakeLock } from "../hooks.js";
 import { spec, specText, timerSec } from "../logic/progress.js";
 import { signal, tick } from "../sound.js";
 import { cancelSpeech } from "../speech.js";
-import { BODY, C, DISPLAY, DOTS, card, sticker } from "../tokens.js";
+import { C, card, DISPLAY, page, sticker } from "../tokens.js";
 import { REST_SEC, mmss } from "../utils.js";
 
 /* ================= 種目詳細＋タイマー＋セット ================= */
@@ -108,10 +108,7 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
 
   return (
     <div className="min-h-screen"
-      style={{
-        background: C.bg, backgroundImage: DOTS, color: C.ink, fontFamily: BODY, minHeight: "100dvh",
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 40px)",
-      }}>
+      style={{ ...page(), paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 40px)" }}>
       <FigStyles />
       <div className="max-w-md mx-auto px-5 pt-6">
         <button onClick={onClose} style={{ color: C.pinkDeep }} className="fx text-sm mb-4 font-bold">‹ 今日のメニューへ</button>
@@ -135,7 +132,7 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
               {sets}<span style={{ color: C.muted }} className="text-xl"> / {target}</span>
             </p>
             <button onClick={() => onAdd(1)} disabled={sets >= target} aria-label="1セット記録する"
-              style={{ background: sets >= target ? C.line : C.pink, color: C.ink, ...sticker(sets >= target ? C.line : "#E96A97") }}
+              style={{ background: sets >= target ? C.line : C.pinkBtn, color: sets >= target ? C.muted : "#fff", ...sticker(sets >= target ? C.line : "#E96A97") }}
               className="fx w-14 h-14 rounded-full text-2xl font-bold">＋</button>
           </div>
           {sets >= target && (
@@ -167,7 +164,7 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
                 style={{ borderColor: C.lineDeep, color: C.muted }}
                 className="fx border-2 rounded-full py-3 text-sm font-bold">リセット</button>
               <button onClick={() => (endAt ? stop() : resting ? start(dur) : beginTimed())}
-                style={{ background: endAt ? C.lav : C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker(endAt ? "#8C6BD6" : "#E96A97") }}
+                style={{ background: endAt ? C.lavText : C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(endAt ? "#8C6BD6" : "#E96A97") }}
                 className="fx rounded-full py-3 text-sm font-bold">
                 {endAt ? "一時停止" : resting ? "休憩をはじめる" : "スタート"}
               </button>
@@ -204,8 +201,8 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
             <p aria-live="polite" className="sr-only">{counting > 0 ? `${counting}回目` : ""}</p>
             <button onClick={() => (counting > 0 ? stopReps() : beginReps())}
               style={counting > 0
-                ? { background: C.lav, color: C.ink, fontFamily: DISPLAY, ...sticker("#8C6BD6") }
-                : { background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+                ? { background: C.lavText, color: "#fff", fontFamily: DISPLAY, ...sticker(C.lavText) }
+                : { background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
               className="fx w-full rounded-full py-3 text-sm font-bold mt-4">
               {counting > 0 ? "やめる" : "はじめる"}
             </button>
@@ -239,7 +236,7 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
         </div>
 
         <button onClick={onClose}
-          style={{ background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+          style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
           className="fx w-full rounded-full py-4 text-base font-bold">
           今日のメニューに戻る
         </button>

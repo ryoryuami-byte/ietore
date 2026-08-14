@@ -24,7 +24,7 @@ function NotifyAskSheet({ time, onAllow, onLater }) {
           時刻はあとから設定で変えられます。
         </p>
         <button onClick={onAllow}
-          style={{ background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+          style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
           className="fx w-full rounded-full py-4 text-base font-bold mb-2">
           お知らせを受け取る
         </button>
@@ -100,7 +100,7 @@ function SkipSheet({ onClose, onSave }) {
         <div style={{ borderColor: C.line, paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
           className="border-t-2 px-5 pt-4 grid gap-2">
           <button onClick={() => pick && onSave(pick, text.trim())} disabled={!pick}
-            style={{ background: pick ? C.lav : C.line, color: pick ? C.ink : C.muted, fontFamily: DISPLAY, ...sticker(pick ? "#8C6BD6" : C.line) }}
+            style={{ background: pick ? C.lavText : C.line, color: pick ? "#fff" : C.muted, fontFamily: DISPLAY, ...sticker(pick ? "#8C6BD6" : C.line) }}
             className="fx rounded-full py-4 text-base font-bold">
             {pick ? "お休みとして記録する" : "理由を選んでください"}
           </button>

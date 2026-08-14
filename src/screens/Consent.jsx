@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Fig, FigStyles } from "../components/Fig.jsx";
 import { HEALTH, HEALTH_Q, needsDoctor } from "../legal.js";
 import { LegalText } from "./Legal.jsx";
-import { BODY, C, DISPLAY, DOTS, card, sticker } from "../tokens.js";
+import { C, card, DISPLAY, page, sticker } from "../tokens.js";
 
 /* =========================================================================
    初回に1回だけ出す画面。
@@ -32,7 +32,7 @@ function Consent({ onAgree }) {
   const canGo = answered && agreed;
 
   return (
-    <div style={{ background: C.bg, backgroundImage: DOTS, color: C.ink, fontFamily: BODY, minHeight: "100dvh" }}
+    <div style={page()}
       className="min-h-screen pb-32">
       <FigStyles />
       <div className="max-w-md mx-auto px-5 pt-8">
@@ -64,7 +64,7 @@ function Consent({ onAgree }) {
             return (
               <button key={id} onClick={() => toggle(id)} aria-pressed={on}
                 style={on
-                  ? { background: C.pink, color: C.ink, borderColor: C.pink, ...sticker("#E96A97") }
+                  ? { background: C.pinkBtn, color: "#fff", borderColor: C.pink, ...sticker(C.pinkBtn) }
                   : { background: C.surface, color: C.ink, borderColor: C.line }}
                 className="fx border-2 rounded-2xl px-4 py-3 text-sm text-left font-bold">
                 {on ? "✓ " : ""}{label}
@@ -98,7 +98,7 @@ function Consent({ onAgree }) {
 
         <button onClick={() => setAgreed((v) => !v)} aria-pressed={agreed}
           style={agreed
-            ? { background: C.mint, color: C.ink, borderColor: C.mint, ...sticker("#3CBF9A") }
+            ? { background: C.mint, color: C.ink, borderColor: C.mint, ...sticker(C.mintText) }
             : { background: C.surface, color: C.ink, borderColor: C.line }}
           className="fx w-full border-2 rounded-2xl px-4 py-4 text-sm text-left font-bold mb-6 leading-relaxed">
           {agreed ? "✓ " : "　"}上の注意と、利用規約・プライバシーポリシーに同意します
@@ -113,7 +113,7 @@ function Consent({ onAgree }) {
         <div className="max-w-md mx-auto">
           <button onClick={() => canGo && onAgree(health)} disabled={!canGo}
             style={canGo
-              ? { background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }
+              ? { background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }
               : { background: C.line, color: C.muted, fontFamily: DISPLAY }}
             className="fx w-full rounded-full py-4 text-base font-bold">
             {!answered ? "あてはまるものを選んでください"

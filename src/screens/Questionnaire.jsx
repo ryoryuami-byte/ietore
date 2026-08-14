@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Fig, FigStyles } from "../components/Fig.jsx";
 import { bodyGoal } from "../logic/bodyGoal.js";
 import { ACTIVITY_LEVEL, AREA_Q, AVOID_Q, EMPTY_PROFILE, NUM_Q, REASON_Q, SELECT_Q, TENDENCY_Q } from "../questions.js";
-import { BODY, C, DISPLAY, DOTS, card, sticker } from "../tokens.js";
+import { C, card, DISPLAY, page, sticker } from "../tokens.js";
 import { toArr } from "../utils.js";
 
 /* ================= 質問フォーム（初回・設定で共用） ================= */
@@ -48,7 +48,7 @@ function Questionnaire({ mode, initial, initialName, onSubmit, onCancel }) {
     bodyGoal({ heightCm: f.height, nowKg: f.weightNow, goalKg: f.weightGoal });
 
   return (
-    <div style={{ background: C.bg, backgroundImage: DOTS, color: C.ink, fontFamily: BODY, minHeight: "100dvh" }} className="min-h-screen pb-32">
+    <div style={page()} className="min-h-screen pb-32">
       <FigStyles />
       <div className="max-w-md mx-auto px-5 pt-8">
         {mode === "onboarding" ? (

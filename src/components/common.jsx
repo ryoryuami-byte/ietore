@@ -3,7 +3,7 @@ import { Fig } from "./Fig.jsx";
 import { EX, FOCUS_META } from "../exercises.js";
 import { useBodyLock } from "../hooks.js";
 import { lvMeta, specText } from "../logic/progress.js";
-import { BODY, C, DISPLAY, card, sticker } from "../tokens.js";
+import { BODY, C, DISPLAY, HERO_SOFT, SHADOW, card, sticker } from "../tokens.js";
 import { DAY_JP } from "../utils.js";
 
 /* ================= 画面パーツ ================= */
@@ -15,32 +15,61 @@ function Center({ children }) {
   );
 }
 
-function Header({ name, dow, meta, pct, done, total, streak, weeks, sealed, rest, lv, stage, half }) {
-  const R = 32, circ = 2 * Math.PI * R;
+/* 上のあいさつ帯。うすいピンクの面に ink を載せる（8.9 : 1） */
+function Greeting({ name, dow, meta }) {
   return (
-    <div style={card()} className="border-2 rounded-3xl px-5 py-5">
-      <p style={{ color: C.muted }} className="text-xs mb-3">こんにちは、{name}さん</p>
-      <div className="flex items-center gap-5">
-        <svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true" className="shrink-0">
-          <circle cx="42" cy="42" r={R} fill="none" stroke={C.line} strokeWidth="10" />
-          <circle cx="42" cy="42" r={R} fill="none" stroke={pct === 100 ? C.mint : C.pink} strokeWidth="10" strokeLinecap="round"
-            strokeDasharray={circ} strokeDashoffset={circ * (1 - pct / 100)} transform="rotate(-90 42 42)"
-            style={{ transition: "stroke-dashoffset .45s ease" }} />
-          <text x="42" y="40" textAnchor="middle" style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 19, fill: C.ink }}>{DAY_JP[dow]}</text>
-          <text x="42" y="55" textAnchor="middle" style={{ fontFamily: BODY, fontSize: 11, fill: C.muted }}>{done}/{total}</text>
-        </svg>
-        <div className="min-w-0">
-          <p style={{ color: C.pinkDeep }} className="text-xs mb-1">つづいた週</p>
-          <p style={{ fontFamily: DISPLAY }} className="text-4xl font-bold leading-none mb-2">{weeks}<span className="text-base ml-1">週</span></p>
-          <p style={{ fontFamily: DISPLAY, color: C.ink }} className="text-sm font-bold">{meta.emoji} {meta.label}</p>
-        </div>
+    <div style={{ background: HERO_SOFT, boxShadow: SHADOW }}
+      className="rounded-3xl px-5 py-5 flex items-center gap-4">
+      <div className="min-w-0 grow">
+        <p style={{ color: C.muted }} className="text-xs mb-1">{DAY_JP[dow]}曜日</p>
+        <p style={{ fontFamily: DISPLAY }} className="text-lg font-bold leading-snug">
+          {name ? `${name}さん` : "こんにちは"}
+        </p>
+        <p style={{ color: C.pinkDeep }} className="text-sm font-bold mt-0.5">
+          今日は{meta.label}
+        </p>
       </div>
-      <div style={{ borderColor: C.line }} className="border-t-2 border-dashed mt-4 pt-3 flex gap-2 flex-wrap">
-        <span style={{ background: C.bg, color: C.pinkDeep }} className="text-xs px-3 py-1.5 rounded-full font-bold">🔥 連続 {streak} 日</span>
-        {rest && <span style={{ background: C.bg, color: C.lavText }} className="text-xs px-3 py-1.5 rounded-full font-bold">🍃 軽めの日</span>}
-        <span style={{ background: C.bg, color: C.lavText }} className="text-xs px-3 py-1.5 rounded-full font-bold">{lvMeta(lv).emoji} Lv.{stage + 1}</span>
-        {half && <span style={{ background: C.bg, color: C.lavText }} className="text-xs px-3 py-1.5 rounded-full font-bold">🌿 短縮</span>}
-        {sealed && <span style={{ background: C.bg, color: C.mintText }} className="text-xs px-3 py-1.5 rounded-full font-bold">✓ 今日は完了</span>}
+      <span className="text-4xl shrink-0" aria-hidden="true">{meta.emoji}</span>
+    </div>
+  );
+}
+
+function Header({ name, dow, meta, pct, done, total, streak, weeks, sealed, rest, lv, stage, half }) {
+  const R = 30, circ = 2 * Math.PI * R;
+  const ringColor = pct === 100 ? C.mint : C.pinkBtn;
+  return (
+    <div className="grid gap-3">
+      <Greeting name={name} dow={dow} meta={meta} />
+
+      {/* 今日の進み。参照アプリの「今週の進捗」と同じ組み（左に見出し、右にリング） */}
+      <div style={card()} className="border-2 rounded-3xl px-5 py-5">
+        <div className="flex items-center gap-5">
+          <div className="min-w-0 grow">
+            <div className="flex items-baseline gap-2 mb-3">
+              <p style={{ fontFamily: DISPLAY }} className="text-sm font-bold">今日の進み</p>
+              <p style={{ color: C.pinkDeep, fontFamily: DISPLAY }} className="text-sm font-bold">
+                {done}<span style={{ color: C.muted }}> / {total}</span>
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <span style={{ background: C.pinkSoft, color: C.pinkDeep }} className="text-xs px-3 py-1.5 rounded-full font-bold">🔥 連続 {streak} 日</span>
+              <span style={{ background: C.lavSoft, color: C.lavText }} className="text-xs px-3 py-1.5 rounded-full font-bold">{weeks} 週つづいた</span>
+              <span style={{ background: C.lavSoft, color: C.lavText }} className="text-xs px-3 py-1.5 rounded-full font-bold">{lvMeta(lv).emoji} Lv.{stage + 1}</span>
+              {rest && <span style={{ background: C.mintSoft, color: C.mintText }} className="text-xs px-3 py-1.5 rounded-full font-bold">🍃 軽めの日</span>}
+              {half && <span style={{ background: C.lavSoft, color: C.lavText }} className="text-xs px-3 py-1.5 rounded-full font-bold">🌿 短縮</span>}
+              {sealed && <span style={{ background: C.mintSoft, color: C.mintText }} className="text-xs px-3 py-1.5 rounded-full font-bold">✓ 完了</span>}
+            </div>
+          </div>
+
+          <svg width="88" height="88" viewBox="0 0 88 88" aria-hidden="true" className="shrink-0">
+            <circle cx="44" cy="44" r={R} fill="none" stroke={C.pinkSoft} strokeWidth="9" />
+            <circle cx="44" cy="44" r={R} fill="none" stroke={ringColor} strokeWidth="9" strokeLinecap="round"
+              strokeDasharray={circ} strokeDashoffset={circ * (1 - pct / 100)} transform="rotate(-90 44 44)"
+              style={{ transition: "stroke-dashoffset .45s ease" }} />
+            <text x="41" y="51" textAnchor="middle" style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 26, fill: ringColor }}>{pct}</text>
+            <text x="60" y="51" textAnchor="middle" style={{ fontFamily: BODY, fontWeight: 700, fontSize: 12, fill: C.muted }}>%</text>
+          </svg>
+        </div>
       </div>
     </div>
   );
@@ -50,12 +79,11 @@ function Section({ title, note, action, children }) {
   return (
     <div className="mt-7">
       <div className="flex items-baseline justify-between mb-1 px-1 gap-3">
-        <h2 style={{ fontFamily: DISPLAY }} className="text-sm font-bold shrink-0">{title}</h2>
+        <h2 style={{ fontFamily: DISPLAY }} className="text-base font-bold shrink-0">{title}</h2>
         {action && (
-          <button onClick={action.onClick}
-            style={{ background: C.surface, borderColor: C.pinkDeep, color: C.pinkDeep, ...sticker(C.line) }}
-            className="fx border-2 rounded-full px-4 py-1.5 text-xs font-bold">
-            {action.label}
+          <button onClick={action.onClick} style={{ color: C.pinkDeep }}
+            className="fx rounded-full px-2 py-1 text-xs font-bold shrink-0">
+            {action.label} ›
           </button>
         )}
       </div>
@@ -159,7 +187,7 @@ function CheerScreen({ name, streak, weeks, leveledUp, cheers = [], onClose }) {
             <p style={{ color: C.muted }} className="text-xs leading-relaxed">明日から回数と秒数が少し増えます。きつければ「きつかった」を選んでください。量を戻します。</p>
           </div>
         )}
-        <button onClick={onClose} style={{ background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+        <button onClick={onClose} style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
           className="fx w-full rounded-full py-4 text-base font-bold">ありがとう</button>
       </div>
     </div>
@@ -222,7 +250,7 @@ function SwapDialog({ current, onClose, onConfirm }) {
             <div className="grid grid-cols-2 gap-3">
               <button onClick={onClose} style={{ borderColor: C.lineDeep, color: C.muted }} className="fx border-2 rounded-full py-3 text-sm font-bold">やめる</button>
               <button onClick={() => (step < 3 ? setStep(step + 1) : onConfirm(pick))}
-                style={{ background: C.pink, color: C.ink, ...sticker("#E96A97") }} className="fx rounded-full py-3 text-sm font-bold">はい</button>
+                style={{ background: C.pinkBtn, color: "#fff", ...sticker(C.pinkBtn) }} className="fx rounded-full py-3 text-sm font-bold">はい</button>
             </div>
           </div>
         )}

@@ -10,7 +10,7 @@ import { speechSupported } from "../speech.js";
 import { SESSIONS_PER_STAGE, STAGE_MAX, STAGE_STEP, lvMeta } from "../logic/progress.js";
 import { LegalText } from "./Legal.jsx";
 import { ConfirmSheet } from "./LogView.jsx";
-import { C, DISPLAY, card, sticker } from "../tokens.js";
+import { alpha, C, DISPLAY, card, sticker } from "../tokens.js";
 import { DAY_JP, REST_OPTIONS, REST_SEC, toArr } from "../utils.js";
 
 /* ================= せってい ================= */
@@ -150,7 +150,7 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
           className="fx w-full border-2 rounded-2xl px-4 py-3 text-sm mb-3 resize-none" />
         <button onClick={() => { if (draft.trim()) { onCheers([...cheers, draft.trim()]); setDraft(""); } }}
           disabled={!draft.trim()}
-          style={{ background: draft.trim() ? C.pink : C.line, color: draft.trim() ? C.ink : C.muted, fontFamily: DISPLAY, ...sticker(draft.trim() ? "#E96A97" : C.line) }}
+          style={{ background: draft.trim() ? C.pinkBtn : C.line, color: draft.trim() ? "#fff" : C.muted, fontFamily: DISPLAY, ...sticker(draft.trim() ? "#E96A97" : C.line) }}
           className="fx w-full rounded-full py-3 text-sm font-bold mb-4">追加する</button>
         {cheers.length === 0 ? (
           <p style={{ color: C.muted }} className="text-xs">まだ1件もありません。</p>
@@ -202,7 +202,7 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
                       <button key={String(val)} onClick={() => enabled && onSet(item.id, val)}
                         disabled={!enabled} role="radio" aria-checked={active}
                         style={active
-                          ? { background: C.pink, color: C.ink, borderColor: C.pink, ...sticker("#E96A97") }
+                          ? { background: C.pinkBtn, color: "#fff", borderColor: C.pink, ...sticker(C.pinkBtn) }
                           : { background: C.surface, color: C.ink, borderColor: C.line }}
                         className="fx border-2 rounded-2xl py-3 text-xs font-bold">
                         {lbl}
@@ -346,7 +346,7 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
           disabled={busy}
           style={busy
             ? { background: C.line, color: C.muted, fontFamily: DISPLAY }
-            : { background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+            : { background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
           className="fx w-full rounded-full py-4 text-sm font-bold mb-2">
           {busy ? "用意しています…" : "📤 ファイルに書き出す"}
         </button>
@@ -392,7 +392,7 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
                 catch (e) { setImportMsg("コピーできませんでした。上の枠を長押しして選択してください。"); }
               }}
               style={exportReady
-                ? { background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }
+                ? { background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }
                 : { background: C.line, color: C.muted, fontFamily: DISPLAY }}
               className="fx w-full rounded-full py-3 text-sm font-bold mb-5">
               {exportReady ? "コピーする" : "用意しています…"}
@@ -530,17 +530,26 @@ function TabBar({ tab, setTab }) {
     { id: "settings", label: "せってい", emoji: "⚙️" },
   ];
   return (
-    <nav style={{ background: C.surface, borderColor: C.line, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-      className="fixed bottom-0 left-0 right-0 border-t-2">
-      <div className="max-w-md mx-auto grid grid-cols-3">
-        {items.map((it) => (
-          <button key={it.id} onClick={() => setTab(it.id)} aria-current={tab === it.id ? "page" : undefined}
-            style={{ color: tab === it.id ? C.pinkDeep : C.muted }}
-            className="fx py-3 pb-5 text-xs font-bold flex flex-col items-center gap-1">
-            <span className="text-lg" aria-hidden="true">{it.emoji}</span>
-            {it.label}
-          </button>
-        ))}
+    <nav style={{
+      background: C.surface,
+      paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      boxShadow: `0 -1px 2px ${alpha("#4A3242", .04)}, 0 -8px 20px ${alpha("#C22E62", .06)}`,
+    }} className="fixed bottom-0 left-0 right-0">
+      <div className="max-w-md mx-auto grid grid-cols-3 px-2 pt-2">
+        {items.map((it) => {
+          const on = tab === it.id;
+          return (
+            <button key={it.id} onClick={() => setTab(it.id)} aria-current={on ? "page" : undefined}
+              style={{ color: on ? C.pinkDeep : C.muted }}
+              className="fx py-2 pb-4 text-xs font-bold flex flex-col items-center gap-1">
+              <span style={on ? { background: C.pinkSoft } : undefined}
+                className="text-lg leading-none px-4 py-1.5 rounded-full transition-colors" aria-hidden="true">
+                {it.emoji}
+              </span>
+              {it.label}
+            </button>
+          );
+        })}
       </div>
     </nav>
   );

@@ -1,6 +1,6 @@
 import { FigStyles } from "../components/Fig.jsx";
 import { HEALTH, PRIVACY, TERMS } from "../legal.js";
-import { BODY, C, DISPLAY, DOTS, card } from "../tokens.js";
+import { C, card, DISPLAY, page } from "../tokens.js";
 
 /* プライバシーポリシー・利用規約・注意書きの表示。
    同意画面と設定の両方から開く */
@@ -11,7 +11,7 @@ function LegalText({ which, onClose }) {
         : { title: HEALTH.title, summary: HEALTH.intro, sections: HEALTH.points.map((p) => ({ head: p.head, body: p.body })) };
 
   return (
-    <div style={{ background: C.bg, backgroundImage: DOTS, color: C.ink, fontFamily: BODY, minHeight: "100dvh" }}
+    <div style={page()}
       className="min-h-screen">
       <FigStyles />
       <div className="max-w-md mx-auto px-5 pt-6"

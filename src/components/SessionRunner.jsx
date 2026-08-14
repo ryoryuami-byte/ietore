@@ -9,7 +9,7 @@ import { useBodyLock, useCountdown, useWakeLock } from "../hooks.js";
 import { spec, specText, timerSec } from "../logic/progress.js";
 import { signal, tick } from "../sound.js";
 import { cancelSpeech } from "../speech.js";
-import { BODY, C, DISPLAY, DOTS, sticker } from "../tokens.js";
+import { C, DISPLAY, page, sticker } from "../tokens.js";
 import { REST_SEC, mmss } from "../utils.js";
 
 /* ================= 連続モード ================= */
@@ -119,7 +119,7 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, core = {}, do
   };
 
   return (
-    <div style={{ background: C.bg, backgroundImage: DOTS, color: C.ink, fontFamily: BODY }} className="fixed inset-0 z-20 overflow-y-auto">
+    <div style={page()} className="fixed inset-0 z-20 overflow-y-auto">
       <div className="max-w-md mx-auto px-5 pt-6 min-h-full flex flex-col"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
         <div className="flex items-center justify-between mb-2">
@@ -155,7 +155,7 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, core = {}, do
                 </text>
               </svg>
               <button onClick={() => (endAt ? stop() : resting ? start(dur) : beginTimed())} disabled={thisDone && !resting}
-                style={{ background: thisDone && !resting ? C.line : endAt ? C.lav : C.pink, color: thisDone && !resting ? C.muted : C.ink, fontFamily: DISPLAY, ...sticker(thisDone && !resting ? C.line : endAt ? "#8C6BD6" : "#E96A97") }}
+                style={{ background: thisDone && !resting ? C.line : endAt ? C.lavText : C.pinkBtn, color: thisDone && !resting ? C.muted : "#fff", fontFamily: DISPLAY, ...sticker(thisDone && !resting ? C.line : endAt ? "#8C6BD6" : "#E96A97") }}
                 className="fx w-full rounded-full py-4 text-base font-bold mt-5">
                 {thisDone && !resting ? "この種目は完了" : endAt ? "一時停止" : resting ? "休憩をはじめる" : "スタート"}
               </button>
@@ -192,13 +192,13 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, core = {}, do
                   </p>
                   <p aria-live="polite" className="sr-only">{counting}回目</p>
                   <button onClick={stopReps}
-                    style={{ background: C.lav, color: C.ink, fontFamily: DISPLAY, ...sticker("#8C6BD6") }}
+                    style={{ background: C.lavText, color: "#fff", fontFamily: DISPLAY, ...sticker(C.lavText) }}
                     className="fx w-full rounded-full py-4 text-base font-bold mt-4">やめる</button>
                 </>
               ) : (
                 <>
                   <button onClick={() => { onSet(id, 1); signal(setsDone + 1 >= sp.sets); }} disabled={thisDone}
-                    style={{ background: thisDone ? C.line : C.pink, color: thisDone ? C.muted : C.ink, fontFamily: DISPLAY, ...sticker(thisDone ? C.line : "#E96A97") }}
+                    style={{ background: thisDone ? C.line : C.pinkBtn, color: thisDone ? C.muted : "#fff", fontFamily: DISPLAY, ...sticker(thisDone ? C.line : "#E96A97") }}
                     className="fx w-full rounded-full py-5 text-lg font-bold">
                     {thisDone ? "この種目は完了" : "1セット できた"}
                   </button>
@@ -229,7 +229,7 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, core = {}, do
             style={{ borderColor: i === 0 ? C.line : C.lineDeep, color: i === 0 ? C.line : C.muted }}
             className="fx border-2 rounded-full py-3 text-sm font-bold">‹ まえ</button>
           <button onClick={goNext}
-            style={{ background: C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker("#E96A97") }}
+            style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
             className="fx rounded-full py-3 text-sm font-bold">
             {i + 1 < ids.length ? "つぎへ ›" : allDone ? "おわる" : "ここまでにする"}
           </button>
