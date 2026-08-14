@@ -184,7 +184,7 @@ function Questionnaire({ mode, initial, initialName, onSubmit, onCancel }) {
             </p>
           )}
           <button onClick={() => canSubmit && onSubmit(name.trim() || "あなた", f)} disabled={!canSubmit}
-            style={{ background: canSubmit ? C.pink : C.line, color: canSubmit ? C.ink : C.muted, fontFamily: DISPLAY, ...sticker(canSubmit ? "#E96A97" : C.line) }}
+            style={{ background: canSubmit ? C.pink : C.line, color: canSubmit ? C.ink : C.muted, fontFamily: DISPLAY, ...sticker(canSubmit ? C.pinkEdge : C.line) }}
             className="fx w-full rounded-full py-4 text-base font-bold">
             {mode === "onboarding" ? "メニューを作る" : "保存してメニューを作り直す"}
           </button>
@@ -213,7 +213,7 @@ function Choice({ active, onClick, label, role }) {
   const a11y = role === "radio" ? { role: "radio", "aria-checked": active } : { "aria-pressed": active };
   return (
     <button onClick={onClick} {...a11y}
-      style={{ background: active ? C.pink : C.bg, color: C.ink, borderColor: active ? "#E96A97" : C.lineDeep }}
+      style={{ background: active ? C.pink : C.bg, color: C.ink, borderColor: active ? C.pinkEdge : C.lineDeep }}
       className="fx border-2 rounded-2xl px-4 py-3 text-sm text-left font-bold">
       {active ? "✓ " : ""}{label}
     </button>

@@ -146,16 +146,16 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, core = {}, do
                 {resting ? `休憩中（${restSec}秒）` : `${Math.min(setsDone + 1, sp.sets)}セット目`}
               </p>
               <svg width="160" height="160" viewBox="0 0 160 160" aria-hidden="true">
-                <circle cx="80" cy="80" r={R} fill="none" stroke={C.line} strokeWidth="12" />
-                <circle cx="80" cy="80" r={R} fill="none" stroke={resting ? C.lav : C.pink} strokeWidth="12" strokeLinecap="round"
+                <circle cx="80" cy="80" r={R} fill="none" style={{ stroke: C.line }} strokeWidth="12" />
+                <circle cx="80" cy="80" r={R} fill="none" strokeWidth="12" strokeLinecap="round"
                   strokeDasharray={circ} strokeDashoffset={circ * (1 - ratio)} transform="rotate(-90 80 80)"
-                  style={{ transition: "stroke-dashoffset .3s linear" }} />
+                  style={{ stroke: resting ? C.lav : C.pink, transition: "stroke-dashoffset .3s linear" }} />
                 <text x="80" y="92" textAnchor="middle" style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 38, fill: C.ink }}>
                   {shown >= 60 ? mmss(shown) : shown}
                 </text>
               </svg>
               <button onClick={() => (endAt ? stop() : resting ? start(dur) : beginTimed())} disabled={thisDone && !resting}
-                style={{ background: thisDone && !resting ? C.line : endAt ? C.lavText : C.pinkBtn, color: thisDone && !resting ? C.muted : "#fff", fontFamily: DISPLAY, ...sticker(thisDone && !resting ? C.line : endAt ? "#8C6BD6" : "#E96A97") }}
+                style={{ background: thisDone && !resting ? C.line : endAt ? C.lavText : C.pinkBtn, color: thisDone && !resting ? C.muted : "#fff", fontFamily: DISPLAY, ...sticker(thisDone && !resting ? C.line : endAt ? C.lavEdge : C.pinkEdge) }}
                 className="fx w-full rounded-full py-4 text-base font-bold mt-5">
                 {thisDone && !resting ? "この種目は完了" : endAt ? "一時停止" : resting ? "休憩をはじめる" : "スタート"}
               </button>
@@ -192,13 +192,13 @@ function SessionRunner({ ids, lv, stage, half, restSec = REST_SEC, core = {}, do
                   </p>
                   <p aria-live="polite" className="sr-only">{counting}回目</p>
                   <button onClick={stopReps}
-                    style={{ background: C.lavText, color: "#fff", fontFamily: DISPLAY, ...sticker(C.lavText) }}
+                    style={{ background: C.lavBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.lavBtn) }}
                     className="fx w-full rounded-full py-4 text-base font-bold mt-4">やめる</button>
                 </>
               ) : (
                 <>
                   <button onClick={() => { onSet(id, 1); signal(setsDone + 1 >= sp.sets); }} disabled={thisDone}
-                    style={{ background: thisDone ? C.line : C.pinkBtn, color: thisDone ? C.muted : "#fff", fontFamily: DISPLAY, ...sticker(thisDone ? C.line : "#E96A97") }}
+                    style={{ background: thisDone ? C.line : C.pinkBtn, color: thisDone ? C.muted : "#fff", fontFamily: DISPLAY, ...sticker(thisDone ? C.line : C.pinkEdge) }}
                     className="fx w-full rounded-full py-5 text-lg font-bold">
                     {thisDone ? "この種目は完了" : "1セット できた"}
                   </button>

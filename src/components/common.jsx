@@ -3,7 +3,7 @@ import { Fig } from "./Fig.jsx";
 import { EX, FOCUS_META } from "../exercises.js";
 import { useBodyLock } from "../hooks.js";
 import { lvMeta, specText } from "../logic/progress.js";
-import { BODY, C, DISPLAY, HERO_SOFT, SHADOW, card, sticker } from "../tokens.js";
+import { BODY, C, DISPLAY, HERO_SOFT, SCRIM, SHADOW, card, sticker } from "../tokens.js";
 import { DAY_JP } from "../utils.js";
 
 /* ================= 画面パーツ ================= */
@@ -62,10 +62,10 @@ function Header({ name, dow, meta, pct, done, total, streak, weeks, sealed, rest
           </div>
 
           <svg width="88" height="88" viewBox="0 0 88 88" aria-hidden="true" className="shrink-0">
-            <circle cx="44" cy="44" r={R} fill="none" stroke={C.pinkSoft} strokeWidth="9" />
-            <circle cx="44" cy="44" r={R} fill="none" stroke={ringColor} strokeWidth="9" strokeLinecap="round"
+            <circle cx="44" cy="44" r={R} fill="none" style={{ stroke: C.pinkSoft }} strokeWidth="9" />
+            <circle cx="44" cy="44" r={R} fill="none" strokeWidth="9" strokeLinecap="round"
               strokeDasharray={circ} strokeDashoffset={circ * (1 - pct / 100)} transform="rotate(-90 44 44)"
-              style={{ transition: "stroke-dashoffset .45s ease" }} />
+              style={{ stroke: ringColor, transition: "stroke-dashoffset .45s ease" }} />
             <text x="41" y="51" textAnchor="middle" style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 26, fill: ringColor }}>{pct}</text>
             <text x="60" y="51" textAnchor="middle" style={{ fontFamily: BODY, fontWeight: 700, fontSize: 12, fill: C.muted }}>%</text>
           </svg>
@@ -97,7 +97,7 @@ function ExRow({ id, lv, stage, half, sets, target, onOpen, onQuick }) {
   const ex = EX[id];
   const done = sets >= target;
   return (
-    <div style={{ background: done ? "#FBFFFD" : C.surface, borderColor: done ? C.mint : C.line, ...sticker(done ? C.mint : C.line) }}
+    <div style={{ background: done ? C.surfaceOk : C.surface, borderColor: done ? C.mint : C.line, ...sticker(done ? C.mint : C.line) }}
       className="border-2 rounded-3xl px-4 py-3 flex items-center gap-3">
       <button onClick={onOpen} className="fx flex items-center gap-3 flex-1 min-w-0 text-left rounded-2xl">
         <Fig kind={ex.fig} />
@@ -164,7 +164,7 @@ function CheerScreen({ name, streak, weeks, leveledUp, cheers = [], onClose }) {
   })), []);
   return (
     <div className="fixed inset-0 flex items-center justify-center px-6 overflow-hidden z-30" role="dialog" aria-modal="true"
-      style={{ background: "rgba(74,50,66,.55)" }}>
+      style={{ background: SCRIM }}>
       <div className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none">
         {bits.map((b, i) => (
           <span key={i} className="confetti" style={{ left: `${b.left}%`, bottom: "10%", background: b.color, animationDelay: `${b.delay}s` }} />
@@ -201,7 +201,7 @@ function SwapDialog({ current, onClose, onConfirm }) {
   const list = ["lower", "core", "upper", "cardio", "full", "rest"];
   useBodyLock();
   return (
-    <div className="fixed inset-0 flex items-end justify-center z-20" role="dialog" aria-modal="true" style={{ background: "rgba(74,50,66,.45)" }}>
+    <div className="fixed inset-0 flex items-end justify-center z-20" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
       {/* vh だと iOS でアドレスバーぶん下がはみ出し、決定ボタンが隠れる */}
       <div style={{ background: C.surface, fontFamily: BODY, maxHeight: "88dvh" }} className="w-full max-w-md rounded-t-3xl flex flex-col">
         {step === 0 ? (
@@ -235,7 +235,7 @@ function SwapDialog({ current, onClose, onConfirm }) {
             <div style={{ borderColor: C.line, background: C.surface, paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
               className="border-t-2 px-5 pt-4 shrink-0 grid gap-2">
               <button onClick={() => (pick === current ? onClose() : setStep(1))}
-                style={{ background: pick === current ? C.line : C.pink, color: pick === current ? C.muted : C.ink, fontFamily: DISPLAY, ...sticker(pick === current ? C.line : "#E96A97") }}
+                style={{ background: pick === current ? C.line : C.pink, color: pick === current ? C.muted : C.ink, fontFamily: DISPLAY, ...sticker(pick === current ? C.line : C.pinkEdge) }}
                 className="fx rounded-full py-4 text-base font-bold">
                 {pick === current ? "同じメニューが選ばれています" : `この内容に変更する（${FOCUS_META[pick].label}）`}
               </button>

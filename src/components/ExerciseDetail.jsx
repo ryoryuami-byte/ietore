@@ -140,7 +140,7 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
               {sets}<span style={{ color: C.muted }} className="text-xl"> / {target}</span>
             </p>
             <button onClick={() => onAdd(1)} disabled={sets >= target} aria-label="1セット記録する"
-              style={{ background: sets >= target ? C.line : C.pinkBtn, color: sets >= target ? C.muted : "#fff", ...sticker(sets >= target ? C.line : "#E96A97") }}
+              style={{ background: sets >= target ? C.line : C.pinkBtn, color: sets >= target ? C.muted : "#fff", ...sticker(sets >= target ? C.line : C.pinkEdge) }}
               className="fx w-14 h-14 rounded-full text-2xl font-bold">＋</button>
           </div>
           {sets >= target && (
@@ -183,10 +183,10 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
               {resting ? `休憩中（${restSec}秒）` : "タイマー"}
             </p>
             <svg width="150" height="150" viewBox="0 0 150 150" aria-hidden="true">
-              <circle cx="75" cy="75" r={R} fill="none" stroke={C.line} strokeWidth="11" />
-              <circle cx="75" cy="75" r={R} fill="none" stroke={resting ? C.lav : C.pink} strokeWidth="11" strokeLinecap="round"
+              <circle cx="75" cy="75" r={R} fill="none" style={{ stroke: C.line }} strokeWidth="11" />
+              <circle cx="75" cy="75" r={R} fill="none" strokeWidth="11" strokeLinecap="round"
                 strokeDasharray={circ} strokeDashoffset={circ * (1 - ratio)} transform="rotate(-90 75 75)"
-                style={{ transition: "stroke-dashoffset .3s linear" }} />
+                style={{ stroke: resting ? C.lav : C.pink, transition: "stroke-dashoffset .3s linear" }} />
               <text x="75" y="86" textAnchor="middle" style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 34, fill: C.ink }}>
                 {shown >= 60 ? mmss(shown) : shown}
               </text>
@@ -200,7 +200,7 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
                 style={{ borderColor: C.lineDeep, color: C.muted }}
                 className="fx border-2 rounded-full py-3 text-sm font-bold">リセット</button>
               <button onClick={() => (endAt ? stop() : resting ? start(dur) : beginTimed())}
-                style={{ background: endAt ? C.lavText : C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(endAt ? "#8C6BD6" : "#E96A97") }}
+                style={{ background: endAt ? C.lavText : C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(endAt ? C.lavEdge : C.pinkEdge) }}
                 className="fx rounded-full py-3 text-sm font-bold">
                 {endAt ? "一時停止" : resting ? "休憩をはじめる" : "スタート"}
               </button>
@@ -237,7 +237,7 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
             <p aria-live="polite" className="sr-only">{counting > 0 ? `${counting}回目` : ""}</p>
             <button onClick={() => (counting > 0 ? stopReps() : beginReps())}
               style={counting > 0
-                ? { background: C.lavText, color: "#fff", fontFamily: DISPLAY, ...sticker(C.lavText) }
+                ? { background: C.lavBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.lavBtn) }
                 : { background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.pinkBtn) }}
               className="fx w-full rounded-full py-3 text-sm font-bold mt-4">
               {counting > 0 ? "やめる" : "はじめる"}

@@ -1,4 +1,5 @@
 import { EX, FOCUS_META } from "../exercises.js";
+import { AREA_Q, AVOID_Q, REASON_Q, TENDENCY_Q } from "../questions.js";
 import { buildPlan, planIsValid } from "./plan.js";
 import { LEVELS, STAGE_MAX } from "./progress.js";
 import { DEFAULT_CORE } from "../storage.js";
@@ -14,6 +15,25 @@ const isPlainObj = (v) => !!v && typeof v === "object" && !Array.isArray(v);
 const isDateKey = (k) =>
   typeof k === "string" && /^\d{4}-\d{2}-\d{2}$/.test(k) && dateKey(new Date(`${k}T00:00:00`)) === k;
 const posNum = (v) => { const x = Number(v); return isFinite(x) && x > 0 ? x : null; };
+
+/* 診断の答えのうち、「複数えらぶ」もの。
+   知らない値が入っていると、画面にそのまま id が出てしまう
+   （「気になる部位のうち belly は…」のような表示になる）。
+   引き継ぎの JSON は利用者が手で貼り付けるものなので、ここで落としておく */
+const MULTI = {
+  area: AREA_Q, avoid: AVOID_Q, stopReason: REASON_Q, tendency: TENDENCY_Q,
+};
+
+function normalizeProfile(p) {
+  const out = { ...p };
+  for (const [key, q] of Object.entries(MULTI)) {
+    const known = new Set(q.map(([id]) => id));
+    /* 1つだけ選ぶ形で保存されていた時期があるので、配列でない値も受ける */
+    const got = Array.isArray(out[key]) ? out[key] : (out[key] ? [out[key]] : []);
+    out[key] = got.filter((x) => known.has(x));
+  }
+  return out;
+}
 
 function normalizeCore(raw) {
   const c = { ...DEFAULT_CORE, ...(isPlainObj(raw) ? raw : {}) };
@@ -34,7 +54,7 @@ function normalizeCore(raw) {
   /* 健康状態の答え。知らない値が混ざっても落ちないよう、文字列だけに絞る */
   c.health = (Array.isArray(c.health) ? c.health : [])
     .filter((x) => typeof x === "string" && x.length <= 20).slice(0, 10);
-  c.profile = isPlainObj(c.profile) ? c.profile : null;
+  c.profile = isPlainObj(c.profile) ? normalizeProfile(c.profile) : null;
   if (!c.profile) c.plan = null;
   else if (!planIsValid(c.plan)) c.plan = buildPlan(c.profile);
   return c;

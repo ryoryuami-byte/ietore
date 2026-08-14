@@ -1,4 +1,4 @@
-import { alpha, C } from "../tokens.js";
+import { C } from "../tokens.js";
 
 /* =========================================================================
    下のタブ。
@@ -30,7 +30,7 @@ function TabBar({ tab, setTab }) {
     <nav style={{
       background: C.surface,
       paddingBottom: "env(safe-area-inset-bottom, 0px)",
-      boxShadow: `0 -1px 2px ${alpha("#4A3242", .04)}, 0 -8px 20px ${alpha("#C22E62", .06)}`,
+      boxShadow: "var(--sh-tab)",
     }} className="fixed bottom-0 left-0 right-0 z-20">
       <div className="max-w-md mx-auto grid grid-cols-5 px-1 pt-2">
         {TABS.map((it) => {

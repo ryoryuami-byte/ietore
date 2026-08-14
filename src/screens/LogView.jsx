@@ -6,7 +6,7 @@ import { useBodyLock } from "../hooks.js";
 import { wantedAreas } from "../logic/plan.js";
 import { spec } from "../logic/progress.js";
 import { AREA_LABEL, areaTotals } from "../questions.js";
-import { BODY, C, card, DISPLAY, page, sticker } from "../tokens.js";
+import { BODY, C, card, DISPLAY, page, SCRIM, SCRIM_DEEP, sticker } from "../tokens.js";
 import { DAY_JP, dateKey, daysBetween, toArr } from "../utils.js";
 
 /* ================= きろく ================= */
@@ -222,7 +222,7 @@ function RecordsView({ core, log, photos, today, todayKey, weeks, focusOn,
                   onWeight(v, Number(waist) || null, Number(thigh) || null);
                 }}
                 disabled={!input.trim() || anyErr}
-                style={{ background: !input.trim() || anyErr ? C.line : C.pink, color: !input.trim() || anyErr ? C.muted : C.ink, fontFamily: DISPLAY, ...sticker(!input.trim() || anyErr ? C.line : "#E96A97") }}
+                style={{ background: !input.trim() || anyErr ? C.line : C.pink, color: !input.trim() || anyErr ? C.muted : C.ink, fontFamily: DISPLAY, ...sticker(!input.trim() || anyErr ? C.line : C.pinkEdge) }}
                 className="fx w-full rounded-full py-4 text-base font-bold">
                 {saved ? "今週の記録を書き直す" : "今週の記録を保存"}
               </button>
@@ -280,7 +280,7 @@ function RecordsView({ core, log, photos, today, todayKey, weeks, focusOn,
               <button key={ph.date} onClick={() => setDelPhoto(ph.date)} className="fx relative rounded-2xl"
                 aria-label={`${ph.date} の写真を削除`}>
                 <img src={ph.data} alt={`${ph.date} に撮った記録写真`} className="w-full aspect-square object-cover rounded-2xl" />
-                <span style={{ background: "rgba(74,50,66,.75)", color: "#fff" }}
+                <span style={{ background: SCRIM_DEEP, color: "#fff" }}
                   className="absolute bottom-1 left-1 right-1 rounded-lg text-xs py-0.5">
                   {ph.date.slice(5).replace("-", "/")}
                 </span>
@@ -363,7 +363,7 @@ function NoteSheet({ dateStr, initial, trained, skip, done, ids = [], exCounts =
   const d = new Date(dateStr + "T00:00:00");
   useBodyLock();
   return (
-    <div className="fixed inset-0 flex items-end justify-center z-20" role="dialog" aria-modal="true" style={{ background: "rgba(74,50,66,.45)" }}>
+    <div className="fixed inset-0 flex items-end justify-center z-20" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
       <div style={{ background: C.surface, fontFamily: BODY, maxHeight: "88dvh", overflowY: "auto",
         paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 32px)" }}
         className="w-full max-w-md rounded-t-3xl px-5 pt-6">
@@ -386,7 +386,7 @@ function NoteSheet({ dateStr, initial, trained, skip, done, ids = [], exCounts =
                 const on = cnt > 0;
                 return (
                   <button key={id} onClick={() => onToggleEx?.(id)} aria-pressed={on}
-                    style={{ background: on ? "#FBFFFD" : C.bg, borderColor: on ? C.mint : C.lineDeep }}
+                    style={{ background: on ? C.surfaceOk : C.bg, borderColor: on ? C.mint : C.lineDeep }}
                     className="fx border-2 rounded-2xl px-3 py-2.5 flex items-center gap-2.5 text-left">
                     <span style={{ background: on ? C.mint : C.surface, borderColor: on ? C.mint : C.lineDeep, color: C.ink }}
                       className="w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center text-xs font-bold">
@@ -430,7 +430,7 @@ function NoteSheet({ dateStr, initial, trained, skip, done, ids = [], exCounts =
 function ConfirmSheet({ title, body, confirmLabel, onCancel, onConfirm }) {
   useBodyLock();
   return (
-    <div className="fixed inset-0 flex items-end justify-center z-30" role="dialog" aria-modal="true" style={{ background: "rgba(74,50,66,.5)" }}>
+    <div className="fixed inset-0 flex items-end justify-center z-30" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
       <div style={{ background: C.surface, fontFamily: BODY, paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 32px)" }}
         className="w-full max-w-md rounded-t-3xl px-5 pt-6">
         <h3 style={{ fontFamily: DISPLAY }} className="text-lg font-bold mb-1">{title}</h3>
@@ -438,7 +438,7 @@ function ConfirmSheet({ title, body, confirmLabel, onCancel, onConfirm }) {
         <div className="grid grid-cols-2 gap-3">
           <button onClick={onCancel} style={{ borderColor: C.lineDeep, color: C.muted }}
             className="fx border-2 rounded-full py-3 text-sm font-bold">やめる</button>
-          <button onClick={onConfirm} style={{ background: C.pinkDeep, color: "#fff", fontFamily: DISPLAY }}
+          <button onClick={onConfirm} style={{ background: C.pinkBtn, color: "#fff", fontFamily: DISPLAY }}
             className="fx rounded-full py-3 text-sm font-bold">{confirmLabel}</button>
         </div>
       </div>
@@ -458,7 +458,7 @@ function MiniChart({ values }) {
     <div style={card()} className="border-2 rounded-3xl p-4">
       <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img"
         aria-label={`体重の4週移動平均。最新 ${values[values.length - 1].toFixed(1)} キログラム`}>
-        <polyline points={pts} fill="none" stroke={C.pinkDeep} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points={pts} fill="none" style={{ stroke: C.pinkDeep }} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <div className="flex justify-between mt-2">
         <p style={{ color: C.muted }} className="text-xs">最小 {min.toFixed(1)} kg</p>
@@ -490,7 +490,7 @@ function TrendChart({ title, values, unit, color }) {
       </div>
       <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img"
         aria-label={`${title}の推移。${values.length}回ぶん、最新は ${latest.toFixed(1)} ${unit}`}>
-        <polyline points={pts} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points={pts} fill="none" style={{ stroke: color }} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <p style={{ color: C.muted }} className="text-xs">
         最新 {latest.toFixed(1)} {unit} ／ いちばん小さいとき {min.toFixed(1)} {unit}（{values.length}回ぶん）
@@ -644,7 +644,7 @@ function WeekReview({ log, today, weeks, streak, needWeight, onClose }) {
 
   return (
     <div className="fixed inset-0 flex items-end justify-center z-30" role="dialog" aria-modal="true"
-      style={{ background: "rgba(74,50,66,.5)" }}>
+      style={{ background: SCRIM }}>
       <div style={{ background: C.surface, fontFamily: BODY, maxHeight: "88dvh", overflowY: "auto",
         paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 32px)" }}
         className="w-full max-w-md rounded-t-3xl px-5 pt-7">

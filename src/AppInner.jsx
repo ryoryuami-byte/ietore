@@ -21,9 +21,10 @@ import { Home } from "./screens/Home.jsx";
 import { Questionnaire } from "./screens/Questionnaire.jsx";
 import { SaveBanner, Settings } from "./screens/Settings.jsx";
 import { setSoundEnabled, unlockAudio } from "./sound.js";
+import { applyTheme, watchSystemTheme } from "./theme.js";
 import { warmUp } from "./speech.js";
 import { DEFAULT_CORE, eraseEverything, K_CORE, K_LEGACY, K_LOG, K_PHOTOS, readJSON, useAutoSave, writeJSON } from "./storage.js";
-import { alpha, C, card, DISPLAY, page, sticker } from "./tokens.js";
+import { C, card, DISPLAY, page, sticker } from "./tokens.js";
 import { REST_OPTIONS, REST_SEC, clamp, dateKey, daysBetween } from "./utils.js";
 
 /* ================= 本体 ================= */
@@ -65,6 +66,16 @@ function AppInner() {
   useEffect(() => { setSoundEnabled(core.sound); }, [core.sound]);
   /* 声かけの設定（オン・オフ／速さ）を反映する */
   useEffect(() => { applyCoachSettings(core); }, [core]);
+
+  /* 見え方。<html> の属性を書き換えるだけで、色は CSS 変数ごと入れ替わる。
+     「端末に合わせる」を選んでいる人のために、端末側の切り替えも聞いておく
+     （夜になって端末が勝手に暗くなったとき、アプリだけ明るいままにしない） */
+  useEffect(() => {
+    applyTheme(core);
+    if (core.theme !== "auto") return undefined;
+    return watchSystemTheme(() => applyTheme(core));
+  }, [core.theme, core.fontScale]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* 最初のタップで音と読み上げを使えるようにしておく（iOS対策）。
      iOS は利用者が画面を触るまで、音も声も出せない */
   useEffect(() => {
@@ -345,7 +356,7 @@ function AppInner() {
       {/* 上のタイトル帯。参照アプリと同じく、いまどこにいるかを常に出す。
           地に溶けこませたいので、少しだけ透かしてぼかす */}
       <div style={{
-        background: alpha("#FFFFFF", .82),
+        background: "var(--veil)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
         paddingTop: "env(safe-area-inset-top, 0px)",
@@ -416,7 +427,7 @@ function AppInner() {
 
             {!allExDone && (
               <button onClick={() => setRunning(true)}
-                style={{ background: C.lavText, color: "#fff", fontFamily: DISPLAY, ...sticker(C.lavText) }}
+                style={{ background: C.lavBtn, color: "#fff", fontFamily: DISPLAY, ...sticker(C.lavBtn) }}
                 className="fx w-full rounded-full py-5 text-lg font-bold mt-5">
                 ▶︎ 連続モードではじめる
               </button>
@@ -424,7 +435,7 @@ function AppInner() {
 
             {allExDone && (
               <button onClick={() => { if (!rec?.done) setAskFeeling(true); else setCheerOn(true); }}
-                style={{ background: rec?.done ? C.mint : C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker(rec?.done ? "#37B893" : "#E96A97") }}
+                style={{ background: rec?.done ? C.mint : C.pink, color: C.ink, fontFamily: DISPLAY, ...sticker(rec?.done ? C.mintEdge : C.pinkEdge) }}
                 className={`fx w-full rounded-full py-5 text-lg font-bold mt-5 ${rec?.done ? "" : "wiggle"}`}>
                 {rec?.done ? "✓ 今日はやりきりました" : "今日のトレーニング完了！！"}
               </button>

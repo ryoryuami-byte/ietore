@@ -12,11 +12,15 @@ html {
   -webkit-text-size-adjust: 100%;
   /* 引っぱったときの跳ね返りを消す。ネイティブの殻に入れると特に不自然に見える */
   overscroll-behavior-y: none;
+  /* 文字の大きさ。--fs は theme.js が設定から入れる。
+     Tailwind の text-xs などはすべて rem なので、ここを変えるだけで全部ついてくる */
+  font-size: calc(16px * var(--fs, 1));
 }
 
 body {
-  /* 画面より中身が短いときに、下に白が出ないようにする */
-  background: #fff3f7;
+  /* 画面より中身が短いときに、下に地と違う色が出ないようにする。
+     --c-bg が入る前（JS が動く前）のために、明るいほうの色を控えにしておく */
+  background: var(--c-bg, #fdf1f6);
   margin: 0;
   overscroll-behavior-y: none;
   /* 長押しで文字が選択されたり、iOS のコピー吹き出しが出るのを防ぐ。
@@ -41,11 +45,35 @@ textarea,
 }
 
 /* iOS は文字サイズが 16px 未満の入力欄をタップすると画面を拡大する。
-   アプリ側は text-base（16px）で書かれているが、取りこぼしの保険 */
+   「文字の大きさ」を上げたときは一緒に大きくなってほしいが、
+   下げる方向には効かせない（16px を割ると拡大が起きるため） */
 input,
 select,
 textarea {
-  font-size: 16px;
+  font-size: max(16px, 1rem);
+}
+
+/* 中身の幅の上限。Tailwind の max-w-* は rem なので、
+   「文字の大きさ」を上げると幅まで一緒に伸びて、画面から横にはみ出す。
+   （とても大きい＝1.24倍だと max-w-md は 28rem ≒ 555px になり、
+   　390px の画面に収まらない）
+   画面幅を超えないようにして、広い画面では今までどおりの幅にする。
+   scripts/shots.mjs が、はみ出していないことを撮るたびに確かめている */
+.max-w-md {
+  max-width: min(28rem, 100%);
+}
+
+.max-w-sm {
+  max-width: min(24rem, 100%);
+}
+
+/* 縦に積むだけの grid（列を指定していないもの）は、既定では
+   「いちばん折り返せない中身」の幅まで列が広がる。ふつうの文字サイズだと
+   たまたま画面に収まっていたが、文字を大きくすると画面から出る。
+   列を minmax(0, 1fr) にして、はみ出す代わりに中身のほうを折り返させる。
+   grid-cols-* を書いてあるもの（選択肢のボタンなど）はそのまま */
+.grid:not([class*="grid-cols-"]) {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 /* Tailwind の preflight はボタンの背景を透明にするが、

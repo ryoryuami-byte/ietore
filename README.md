@@ -7,6 +7,7 @@
 npm install
 npm run dev         # http://localhost:5173（同じ Wi-Fi のスマホからも開けます）
 npm run build:demo  # dist-demo/ietore.html — 1枚のHTML。開くだけで試せます
+npm run shots       # shots/ に画面を撮る（明るい／暗い × 5タブ）
 ```
 
 `build:demo` で作られる HTML は、インストールせずに触ってもらうためのものです。
@@ -29,7 +30,7 @@ npm run build:demo  # dist-demo/ietore.html — 1枚のHTML。開くだけで試
 | Phase 1 土台づくり | **済** Vite + React + Tailwind。3,555行を23モジュールへ分割 |
 | Phase 2 ネイティブ化 | **済** Capacitor で iOS / Android。保存を端末側へ移した |
 | Phase 3 発売に必要な機能 | **済** 通知・法務・全削除・ファイルバックアップ |
-| Phase 4 品質保証 | **済** 自動テスト191件。実機テスト表は [docs/TESTING.md](docs/TESTING.md) |
+| Phase 4 品質保証 | **済** 自動テスト228件。実機テスト表は [docs/TESTING.md](docs/TESTING.md) |
 | Phase 5 ストア準備 | **ほぼ済** 掲載文・プライバシー申告・審査対策。**アイコンとスクショはご用意ぶん** |
 | Phase 6 発売と初動 | 手順書のみ（Apple Developer 登録が要るため） |
 
@@ -41,7 +42,8 @@ npm run build:demo  # dist-demo/ietore.html — 1枚のHTML。開くだけで試
 src/
   App.jsx            入口。エラー表示と viewport だけ
   AppInner.jsx       画面の本体と状態
-  tokens.js          色・書体・カードの影
+  tokens.js          色・書体・影。明暗2組のパレットと、CSS変数の作りかた
+  theme.js           いまどちらのテーマか、文字をどれだけ大きくするか
   exercises.js       種目ライブラリと、1回の流れ（① 〜 ④）
   questions.js       初回診断の質問
   utils.js           日付・時刻・数値の小道具
@@ -92,6 +94,7 @@ ios/  android/       Capacitor が生成したネイティブ側
 - タイマー・連続モード・セット間の自動休憩（とばす／＋15秒つき）
 - 声で案内・開始前のカウントダウン・回数を数える・テンポ音
 - 5つのタブ（ホーム／トレーニング／記録／カレンダー／マイページ）
+- ダークモード（端末に合わせる／明るく／暗く）と、文字の大きさ3段階
 - 週の目標・連続日数の保護（月1回まで）・節目のお祝い・切れたあとの声かけ
 - 1種目だけの差し替え（やさしく／別のもの／きつく）
 - 前回の記録と自己ベストの表示

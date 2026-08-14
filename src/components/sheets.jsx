@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useBodyLock } from "../hooks.js";
 import { Choice } from "../screens/Questionnaire.jsx";
-import { BODY, C, DISPLAY, card, sticker } from "../tokens.js";
+import { BODY, C, DISPLAY, SCRIM, card, sticker } from "../tokens.js";
 
 /* ================= お知らせの許可を聞く ================= */
 /* 出すタイミングは「1回目をやりきった直後」。
@@ -11,7 +11,7 @@ function NotifyAskSheet({ time, onAllow, onLater }) {
   useBodyLock();
   return (
     <div className="fixed inset-0 flex items-end justify-center z-30" role="dialog" aria-modal="true"
-      style={{ background: "rgba(74,50,66,.5)" }}>
+      style={{ background: SCRIM }}>
       <div style={{ background: C.surface, fontFamily: BODY, paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 32px)" }}
         className="w-full max-w-md rounded-t-3xl px-5 pt-6">
         <p className="text-4xl mb-3 text-center" aria-hidden="true">🔔</p>
@@ -46,7 +46,7 @@ const FEELINGS = [
 function FeelingSheet({ onPick, onClose }) {
   useBodyLock();
   return (
-    <div className="fixed inset-0 flex items-end justify-center z-20" role="dialog" aria-modal="true" style={{ background: "rgba(74,50,66,.5)" }}>
+    <div className="fixed inset-0 flex items-end justify-center z-20" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
       <div style={{ background: C.surface, fontFamily: BODY, paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 32px)" }}
         className="w-full max-w-md rounded-t-3xl px-5 pt-6">
         <h3 style={{ fontFamily: DISPLAY }} className="text-xl font-bold mb-1">今日はどうでしたか？</h3>
@@ -79,7 +79,7 @@ function SkipSheet({ onClose, onSave }) {
   const [text, setText] = useState("");
   useBodyLock();
   return (
-    <div className="fixed inset-0 flex items-end justify-center z-20" role="dialog" aria-modal="true" style={{ background: "rgba(74,50,66,.45)" }}>
+    <div className="fixed inset-0 flex items-end justify-center z-20" role="dialog" aria-modal="true" style={{ background: SCRIM }}>
       <div style={{ background: C.surface, fontFamily: BODY, maxHeight: "88dvh" }} className="w-full max-w-md rounded-t-3xl flex flex-col">
         <div className="px-5 pt-6 pb-3">
           <h3 style={{ fontFamily: DISPLAY }} className="text-lg font-bold mb-1">今日はお休みにする</h3>
@@ -100,7 +100,7 @@ function SkipSheet({ onClose, onSave }) {
         <div style={{ borderColor: C.line, paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
           className="border-t-2 px-5 pt-4 grid gap-2">
           <button onClick={() => pick && onSave(pick, text.trim())} disabled={!pick}
-            style={{ background: pick ? C.lavText : C.line, color: pick ? "#fff" : C.muted, fontFamily: DISPLAY, ...sticker(pick ? "#8C6BD6" : C.line) }}
+            style={{ background: pick ? C.lavText : C.line, color: pick ? "#fff" : C.muted, fontFamily: DISPLAY, ...sticker(pick ? C.lavEdge : C.line) }}
             className="fx rounded-full py-4 text-base font-bold">
             {pick ? "お休みとして記録する" : "理由を選んでください"}
           </button>

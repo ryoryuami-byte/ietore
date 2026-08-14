@@ -70,6 +70,21 @@ const SETTINGS = [
       + "切れた瞬間にやめてしまう人がいちばん多いので、そこを1日ぶんだけ守ります。",
   },
 
+  /* ---- 見え方（v18.5 で追加） ---- */
+  {
+    id: "theme", type: "choice", def: "auto",
+    group: "look", label: "画面の明るさ",
+    options: [["auto", "端末に合わせる"], ["light", "明るく"], ["dark", "暗く"]],
+    note: "夜、部屋を暗くして使うときは「暗く」。"
+      + "「端末に合わせる」にしておくと、端末の設定が切り替わったときに一緒に変わります。",
+  },
+  {
+    id: "fontScale", type: "choice", def: "normal",
+    group: "look", label: "文字の大きさ",
+    options: [["normal", "ふつう"], ["large", "大きい"], ["huge", "とても大きい"]],
+    note: "床に寝た姿勢だと、画面は遠くなります。読みづらいときは大きくしてください。",
+  },
+
   /* ---- もとからある設定 ---- */
   { id: "sound", type: "toggle", def: true, group: "sound", label: "音とバイブ" },
   { id: "notifyOn", type: "toggle", def: true, group: "notify", label: "お知らせ" },

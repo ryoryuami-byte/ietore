@@ -57,4 +57,10 @@ export default [
     files: ["*.config.js", "scripts/**/*.mjs", "src/**/*.test.{js,jsx}"],
     languageOptions: { globals: { ...globals.node } },
   },
+  {
+    /* 画面を撮る道具だけは、Node とブラウザの両方の文脈を持つ。
+       page.evaluate() の中は、向こう側のブラウザで動く */
+    files: ["scripts/shots.mjs"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
 ];

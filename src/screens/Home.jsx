@@ -111,10 +111,11 @@ function Home({
       {/* 週の目標。日ごとに追うより挫折しにくい */}
       <div style={card()} className="border-2 rounded-3xl px-5 py-5 flex items-center gap-5">
         <svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true" className="shrink-0">
-          <circle cx="38" cy="38" r={R} fill="none" stroke={C.lavSoft} strokeWidth="8" />
-          <circle cx="38" cy="38" r={R} fill="none" stroke={goalPct >= 100 ? C.mintText : C.lavText} strokeWidth="8"
+          <circle cx="38" cy="38" r={R} fill="none" style={{ stroke: C.lavSoft }} strokeWidth="8" />
+          <circle cx="38" cy="38" r={R} fill="none" strokeWidth="8"
             strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - goalPct / 100)}
-            transform="rotate(-90 38 38)" style={{ transition: "stroke-dashoffset .45s ease" }} />
+            transform="rotate(-90 38 38)"
+            style={{ stroke: goalPct >= 100 ? C.mintText : C.lavText, transition: "stroke-dashoffset .45s ease" }} />
           <text x="38" y="43" textAnchor="middle"
             style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 17, fill: goalPct >= 100 ? C.mintText : C.lavText }}>
             {weekDone}/{weekGoal}

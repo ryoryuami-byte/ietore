@@ -23,7 +23,7 @@ function BadgeGrid({ badges }) {
       <div className="grid grid-cols-4 gap-2">
         {badges.map((b) => (
           <div key={b.name} className="text-center">
-            <div style={{ background: b.got ? C.bg : "#EFEAF0" }}
+            <div style={{ background: b.got ? C.bg : C.disabled }}
               className="aspect-square rounded-2xl flex items-center justify-center text-2xl mb-1">
               <span aria-hidden="true">{b.got ? b.emoji : "🔒"}</span>
             </div>

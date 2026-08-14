@@ -200,7 +200,7 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
           className="fx w-full border-2 rounded-2xl px-4 py-3 text-sm mb-3 resize-none" />
         <button onClick={() => { if (draft.trim()) { onCheers([...cheers, draft.trim()]); setDraft(""); } }}
           disabled={!draft.trim()}
-          style={{ background: draft.trim() ? C.pinkBtn : C.line, color: draft.trim() ? "#fff" : C.muted, fontFamily: DISPLAY, ...sticker(draft.trim() ? "#E96A97" : C.line) }}
+          style={{ background: draft.trim() ? C.pinkBtn : C.line, color: draft.trim() ? "#fff" : C.muted, fontFamily: DISPLAY, ...sticker(draft.trim() ? C.pinkEdge : C.line) }}
           className="fx w-full rounded-full py-3 text-sm font-bold mb-4">追加する</button>
         {cheers.length === 0 ? (
           <p style={{ color: C.muted }} className="text-xs">まだ1件もありません。</p>
@@ -243,6 +243,15 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
         多すぎると感じたら減らしてかまいません。減らしても、メニューの中身は変わりません。
       </p>
 
+      {/* 見え方。settings.js の group:"look" から自動で作る */}
+      <p style={{ color: C.muted }} className="text-xs mb-2 px-1">見え方</p>
+      <div style={card()} className="border-2 rounded-3xl px-5 py-5 mb-2">
+        <SettingGroup id="look" core={core} onSet={onSet} />
+      </div>
+      <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-7 px-1">
+        選んだ瞬間に変わります。どちらの明るさでも、文字と背景の濃さの差は同じだけ確保してあります。
+      </p>
+
       <p style={{ color: C.muted }} className="text-xs mb-2 px-1">セット間の休憩</p>
       <div style={card()} className="border-2 rounded-3xl px-5 py-5 mb-7">
         <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="セット間の休憩">
@@ -250,7 +259,7 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
             const on = restSec === sec;
             return (
               <button key={sec} onClick={() => onRest(sec)} role="radio" aria-checked={on}
-                style={{ background: on ? C.pink : C.bg, borderColor: on ? "#E96A97" : C.lineDeep, color: C.ink }}
+                style={{ background: on ? C.pink : C.bg, borderColor: on ? C.pinkEdge : C.lineDeep, color: C.ink }}
                 className="fx border-2 rounded-2xl py-3 text-sm font-bold">{sec}秒</button>
             );
           })}
@@ -292,7 +301,7 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
         <input id="notify" type="time" value={core.notifyTime ?? "20:00"} onChange={(e) => onNotify(e.target.value)}
           disabled={core.notifyOn === false}
           style={{
-            background: core.notifyOn === false ? "#EFEAF0" : C.bg,
+            background: core.notifyOn === false ? C.disabled : C.bg,
             borderColor: C.lineDeep, color: core.notifyOn === false ? C.muted : C.ink,
           }}
           className="fx w-full border-2 rounded-2xl px-4 py-3 text-base mb-3" />
@@ -536,7 +545,7 @@ function SaveBanner({ onClose }) {
   }, []);
   return (
     <button onClick={onClose} role="alert"
-      style={{ background: C.pinkDeep, color: "#fff", bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
+      style={{ background: C.pinkBtn, color: "#fff", bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
       className="fx fixed left-4 right-4 mx-auto max-w-sm px-5 py-3 text-xs rounded-2xl font-bold z-40">
       端末に保存できませんでした。画面の記録はそのまま使えます（タップで閉じる）
     </button>
