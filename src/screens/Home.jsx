@@ -3,7 +3,9 @@ import { Header } from "../components/common.jsx";
 import { WeekSummary } from "../components/WeekSummary.jsx";
 import { EX, phaseOf } from "../exercises.js";
 import { estimateMin } from "../logic/plan.js";
+import { MILESTONE_WORDS, milestoneOf, recoveryMessage } from "../logic/streak.js";
 import { C, DISPLAY, card, sticker } from "../tokens.js";
+import { daysBetween } from "../utils.js";
 
 /* =========================================================================
    ホーム。
@@ -20,16 +22,50 @@ import { C, DISPLAY, card, sticker } from "../tokens.js";
    ========================================================================= */
 function Home({
   name, dow, meta, pct, done, total, streak, weeks, sealed, rest, lv, stage, half,
-  dayIds, dayLv, dayStage, restSec, log, today, trainedToday, skipRec,
+  dayIds, dayLv, dayStage, restSec, log, today, todayKey, trainedToday, skipRec,
+  weekGoal, weekDone, frozen, brokeAt,
   onStart, onOpenTrain, onSkip,
 }) {
   const mains = dayIds.filter((id) => phaseOf(id) === "main");
   const minutes = estimateMin(dayIds, dayLv, dayStage, half, restSec);
 
+  /* 節目。到達した「その日」だけ出す */
+  const milestone = trainedToday ? milestoneOf(streak) : null;
+  const words = milestone ? MILESTONE_WORDS[milestone] : null;
+
+  /* 切れたときの声かけ。連続が0に戻っていて、まだ今日をやっていない人にだけ */
+  const recovery = !trainedToday && streak === 0 && brokeAt
+    ? recoveryMessage(brokeAt, Math.abs(daysBetween(brokeAt, todayKey)))
+    : null;
+
+  /* 週の目標のリング */
+  const goalPct = weekGoal > 0 ? Math.min(100, Math.round((weekDone / weekGoal) * 100)) : 0;
+  const R = 26, circ = 2 * Math.PI * R;
+
+  /* 今月の保護。使っていたら、黙って救わずに伝える */
+  const frozenThisMonth = (frozen ?? []).filter((k) => k.slice(0, 7) === todayKey.slice(0, 7));
+
   return (
     <div className="mt-2 grid gap-5">
       <Header name={name} dow={dow} meta={meta} pct={pct} done={done} total={total}
         streak={streak} weeks={weeks} sealed={sealed} rest={rest} lv={lv} stage={stage} half={half} />
+
+      {/* 節目のお祝い。数字だけでなく、何を成し遂げたかを言う */}
+      {words && (
+        <div style={{ background: C.pinkSoft }} className="rounded-3xl px-5 py-5 text-center cheer">
+          <p className="text-4xl mb-2" aria-hidden="true">🎉</p>
+          <p style={{ fontFamily: DISPLAY, color: C.pinkDeep }} className="text-xl font-bold mb-1">{words.title}</p>
+          <p style={{ color: C.ink }} className="text-sm">{words.body}</p>
+        </div>
+      )}
+
+      {/* 切れたあと。責めない */}
+      {recovery && (
+        <div style={card({ borderColor: C.lav })} className="border-2 rounded-3xl px-5 py-5">
+          <p style={{ fontFamily: DISPLAY, color: C.lavText }} className="text-base font-bold mb-1">{recovery.title}</p>
+          <p style={{ color: C.muted }} className="text-sm leading-relaxed">{recovery.body}</p>
+        </div>
+      )}
 
       {/* 今日のメニューの入口。ここから始められないと、ホームを置く意味がない */}
       <div style={card()} className="border-2 rounded-3xl px-5 py-5">
@@ -70,6 +106,33 @@ function Home({
           className="fx w-full rounded-full py-3 text-sm font-bold mt-1">
           種目を1つずつ見る ›
         </button>
+      </div>
+
+      {/* 週の目標。日ごとに追うより挫折しにくい */}
+      <div style={card()} className="border-2 rounded-3xl px-5 py-5 flex items-center gap-5">
+        <svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true" className="shrink-0">
+          <circle cx="38" cy="38" r={R} fill="none" stroke={C.lavSoft} strokeWidth="8" />
+          <circle cx="38" cy="38" r={R} fill="none" stroke={goalPct >= 100 ? C.mintText : C.lavText} strokeWidth="8"
+            strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - goalPct / 100)}
+            transform="rotate(-90 38 38)" style={{ transition: "stroke-dashoffset .45s ease" }} />
+          <text x="38" y="43" textAnchor="middle"
+            style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 17, fill: goalPct >= 100 ? C.mintText : C.lavText }}>
+            {weekDone}/{weekGoal}
+          </text>
+        </svg>
+        <div className="min-w-0">
+          <p style={{ fontFamily: DISPLAY }} className="text-base font-bold mb-1">今週の目標</p>
+          <p style={{ color: C.muted }} className="text-sm leading-relaxed">
+            {goalPct >= 100
+              ? "今週ぶんは達成しました。ここから先はおまけです。"
+              : `あと ${weekGoal - weekDone} 回で今週ぶんです。`}
+          </p>
+          {frozenThisMonth.length > 0 && (
+            <p style={{ color: C.lavText }} className="text-xs font-bold mt-2">
+              🛡 今月は1日ぶん、連続を守りました
+            </p>
+          )}
+        </div>
       </div>
 
       <WeekSummary log={log} today={today} />

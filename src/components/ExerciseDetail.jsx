@@ -6,6 +6,7 @@ import {
 } from "../coach.js";
 import { EX, PHASE_META, phaseOf } from "../exercises.js";
 import { useCountdown, useWakeLock } from "../hooks.js";
+import { bestOf, lastDoneOf } from "../logic/history.js";
 import { spec, specText, timerSec } from "../logic/progress.js";
 import { signal, tick } from "../sound.js";
 import { cancelSpeech } from "../speech.js";
@@ -13,7 +14,8 @@ import { C, card, DISPLAY, page, sticker } from "../tokens.js";
 import { REST_SEC, mmss } from "../utils.js";
 
 /* ================= 種目詳細＋タイマー＋セット ================= */
-function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC, core = {}, onAdd, onClose }) {
+function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC, core = {},
+  log = {}, todayKey, swaps, onAdd, onSwap, onClose }) {
   const ex = EX[id];
   const sp = spec(ex, lv, stage, half);
   const [resting, setResting] = useState(false);
@@ -103,6 +105,12 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
 
   const stopReps = () => { stopCoach.current?.(); stopCoach.current = null; setCounting(0); };
 
+  /* 前回と自己ベスト。データはすでに記録の中にある。出していなかっただけ */
+  const prev = lastDoneOf(log, id, todayKey);
+  const best = bestOf(log, id);
+  const unit = ex.type === "time" ? "秒" : "回";
+  const isBest = best && sp.amount > best.amount;
+
   const ratio = endAt == null ? 1 : shown / dur;
   const R = 58, circ = 2 * Math.PI * R;
 
@@ -139,6 +147,34 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
             <p style={{ color: C.mintText, fontFamily: DISPLAY }} className="text-sm font-bold text-center mt-4">この種目は完了です 🎉</p>
           )}
         </div>
+
+        {/* 前回と自己ベスト。「続けて何か変わったのか」がここで初めて見える */}
+        {(prev || best) && (
+          <div style={card()} className="border-2 rounded-3xl px-5 py-4 mb-4 flex gap-4">
+            {prev && (
+              <div className="flex-1 min-w-0">
+                <p style={{ color: C.muted }} className="text-xs mb-1">前回（{prev.date.slice(5).replace("-", "/")}）</p>
+                <p style={{ fontFamily: DISPLAY }} className="text-base font-bold">
+                  {prev.amount}{unit} × {prev.sets}セット
+                </p>
+              </div>
+            )}
+            {best && (
+              <div className="flex-1 min-w-0">
+                <p style={{ color: C.muted }} className="text-xs mb-1">自己ベスト</p>
+                <p style={{ fontFamily: DISPLAY, color: isBest ? C.mintText : C.ink }} className="text-base font-bold">
+                  {best.amount}{unit} × {best.sets}セット
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+        {isBest && (
+          <div style={{ background: C.mintSoft, color: C.mintText }}
+            className="rounded-2xl px-5 py-3 mb-4 text-sm font-bold text-center">
+            今日やりきれば、自己ベスト更新です 🏆
+          </div>
+        )}
 
         {/* タイマー（秒数種目のみ） */}
         {isTime && (
@@ -211,6 +247,27 @@ function ExerciseDetail({ id, lv, stage, half, sets, target, restSec = REST_SEC,
               {ex.perSide && "左右それぞれで1回ずつ行ってください。"}
               声と音は、せっていの「動きながら使う」で変えられます。
             </p>
+          </div>
+        )}
+
+        {/* この種目だけ替える。日ごとの入れ替えでは粗すぎる場面のため */}
+        {onSwap && (swaps?.easier || swaps?.harder || swaps?.other) && (
+          <div style={card()} className="border-2 rounded-3xl px-5 py-4 mb-4">
+            <p style={{ fontFamily: DISPLAY }} className="text-sm font-bold mb-1">この種目を替える</p>
+            <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-3">
+              ほかの種目はそのままです。今日だけの変更ではなく、この曜日の予定が変わります。
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <button onClick={() => onSwap(-1)} disabled={!swaps.easier}
+                style={{ borderColor: swaps.easier ? C.lineDeep : C.line, color: swaps.easier ? C.muted : C.line }}
+                className="fx border-2 rounded-2xl py-3 text-xs font-bold">やさしく</button>
+              <button onClick={() => onSwap(0)} disabled={!swaps.other}
+                style={{ borderColor: swaps.other ? C.lineDeep : C.line, color: swaps.other ? C.muted : C.line }}
+                className="fx border-2 rounded-2xl py-3 text-xs font-bold">別のもの</button>
+              <button onClick={() => onSwap(1)} disabled={!swaps.harder}
+                style={{ borderColor: swaps.harder ? C.lineDeep : C.line, color: swaps.harder ? C.muted : C.line }}
+                className="fx border-2 rounded-2xl py-3 text-xs font-bold">きつく</button>
+            </div>
           </div>
         )}
 

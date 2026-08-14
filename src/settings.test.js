@@ -1,6 +1,8 @@
 /* 設定の定義。
    ここを1か所にまとめたことで、初期値・検証・画面がずれなくなった。
    そのずれが起きていないことを、ここで見張る。 */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import { defaults, groupsOf, isEnabled, normalizeSettings, SETTINGS } from "./settings.js";
 import { normalizeCore } from "./logic/validate.js";
@@ -90,6 +92,27 @@ describe("画面の組み立て", () => {
     expect(isEnabled(rate, { voiceOn: false })).toBe(false);
     /* 親を持たない設定は、いつでも触れる */
     expect(isEnabled(SETTINGS.find((s) => s.id === "voiceOn"), {})).toBe(true);
+  });
+});
+
+describe("画面に出ているか", () => {
+  /* v18.4 で実際にやらかした取りこぼし。
+     settings.js に足しただけで満足すると、初期値も検証も付いてくるぶん
+     「保存はされるのに、誰も触れない設定」が静かにできあがる。
+     設定画面の中身そのものを読んで、取りこぼしをその場で落とす。 */
+  /* import.meta.url は jsdom だと http: になるので、実行場所からたどる */
+  const src = readFileSync(resolve(process.cwd(), "src/screens/Settings.jsx"), "utf8");
+
+  it("group を持つ設定は、必ず設定画面から届く", () => {
+    /* <SettingGroup id="coach" /> のように、まとめて描いているグループ */
+    const auto = new Set([...src.matchAll(/<SettingGroup[^>]*\bid="([^"]+)"/g)].map((m) => m[1]));
+
+    for (const s of SETTINGS) {
+      if (!s.group) continue;
+      /* まとめて描かれているか、手で書かれて id が出てきているか */
+      const shown = auto.has(s.group) || src.includes(s.id);
+      expect(shown, `${s.id}（${s.label}）が設定画面に出ていない`).toBe(true);
+    }
   });
 });
 

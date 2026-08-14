@@ -177,6 +177,58 @@ function shortIds(ids) {
 /* 「おかえり」で見せる代表の1種目。ウォームアップではなくメインを出す */
 const mainIdOf = (ids) => ids.find((id) => phaseOf(id) === "main") ?? ids.find((id) => phaseOf(id) === "cardio") ?? ids[0];
 
+/* 1種目だけを別のものに差し替える。
+
+   これまで入れ替えは「その日ぜんぶ」の単位しか無かった。
+   実際に困るのは「この種目だけ、ひざが痛い」「これだけ苦手」という
+   1種目ぶんで、日ごと入れ替えると他の6種目まで変わってしまう。
+
+     ids     … いまの1日ぶん
+     id      … 差し替えたい種目
+     dir     … 0=別のもの / -1=やさしいほうへ / +1=きついほうへ
+   返すのは新しい ids。候補が無ければ元のまま返す。 */
+function swapOne(p, ids, id, dir = 0) {
+  const ex = EX[id];
+  if (!ex || !ids.includes(id)) return ids;
+  const ph = ex.phase ?? "main";
+  const usable = usableList(p);
+
+  /* 同じ流れ（①〜④）の中から、いま使っていないものを候補にする */
+  let pool = usable
+    .filter(([x, e]) => (e.phase ?? "main") === ph && !ids.includes(x))
+    .map(([x, e]) => [x, e]);
+
+  /* メインは、鍛える場所が変わらないものを優先する。
+     下半身の日に上半身の種目が入ってきては困る */
+  if (ph === "main" && (ex.focus ?? []).length) {
+    const same = pool.filter(([, e]) => (e.focus ?? []).some((f) => (ex.focus ?? []).includes(f)));
+    if (same.length) pool = same;
+  }
+
+  /* 腰に負担のある種目は、もともと1日1つまで。
+     いま別のところで使っているなら、候補から外す */
+  const spineUsed = ids.some((x) => x !== id && EX[x]?.spineLoad);
+  if (spineUsed) pool = pool.filter(([, e]) => !e.spineLoad);
+
+  if (dir !== 0) {
+    /* やさしい／きついは、強度（int）と1セットあたりの量で見る */
+    const weight = (e) => (e.int ?? 1) * 100 + ((e.amount?.hard ?? 0) + (e.amount?.easy ?? 0)) / 2;
+    const here = weight(ex);
+    const side = pool.filter(([, e]) => (dir < 0 ? weight(e) < here : weight(e) > here));
+    /* 求めた向きに候補が無ければ、差し替えない（黙って逆へ動かさない） */
+    if (!side.length) return ids;
+    side.sort((a, b) => (dir < 0 ? weight(b[1]) - weight(a[1]) : weight(a[1]) - weight(b[1])));
+    pool = side;
+  }
+
+  if (!pool.length) return ids;
+  const next = pool[0][0];
+  return byPhaseOrder(ids.map((x) => (x === id ? next : x)));
+}
+
+/* その種目に、やさしい版・きつい版があるか（ボタンを出すかの判断に使う） */
+const hasSwap = (p, ids, id, dir) => swapOne(p, ids, id, dir) !== ids;
+
 /* 週の並び。週3日以上なら「下半身・体幹・上半身」を必ず1日ずつ確保してから、
    残りを目的の優先順で埋める。こうしないと週3日・減量で上半身が1日も入らなかった。
    有酸素は毎日③として入るので、有酸素の日が消えても運動量は落ちない */
@@ -229,4 +281,4 @@ const planIsValid = (plan) =>
     return day.ids.filter((id) => phaseOf(id) === "cardio").length === CARDIO_PICKS;
   });
 
-export { buildDay, buildPlan, estimateMin, levelOf, mainIdOf, planIsValid, shortIds, wantedAreas };
+export { buildDay, buildPlan, estimateMin, hasSwap, levelOf, mainIdOf, planIsValid, shortIds, swapOne, wantedAreas };

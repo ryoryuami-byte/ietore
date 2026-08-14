@@ -56,6 +56,20 @@ const SETTINGS = [
     dependsOn: "tempoOn",
   },
 
+  /* ---- 続ける仕組み（v18.4 で追加） ---- */
+  {
+    id: "weekGoal", type: "choice", def: "auto",
+    group: "keep", label: "週の目標",
+    options: [["auto", "診断どおり"], ["3", "週3回"], ["4", "週4回"], ["5", "週5回"], ["6", "週6回"]],
+    note: "日ごとに達成を追うより、週の回数で見るほうが挫折しにくくなります。",
+  },
+  {
+    id: "freezeOn", type: "toggle", def: true,
+    group: "keep", label: "連続日数の保護",
+    note: "何も言わずに1日あけても、ひと月に1度だけ連続が切れません。"
+      + "切れた瞬間にやめてしまう人がいちばん多いので、そこを1日ぶんだけ守ります。",
+  },
+
   /* ---- もとからある設定 ---- */
   { id: "sound", type: "toggle", def: true, group: "sound", label: "音とバイブ" },
   { id: "notifyOn", type: "toggle", def: true, group: "notify", label: "お知らせ" },

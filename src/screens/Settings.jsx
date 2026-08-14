@@ -13,6 +13,56 @@ import { ConfirmSheet } from "./LogView.jsx";
 import { C, DISPLAY, card, sticker } from "../tokens.js";
 import { DAY_JP, REST_OPTIONS, REST_SEC, toArr } from "../utils.js";
 
+/* settings.js の1グループぶんを、そのまま画面にする。
+
+   ここが「設定を足すのが楽」の実体。settings.js に1行足せば、
+   初期値・検証・この描画まで全部ついてくる。新しい group を作ったときだけ、
+   下の画面に <SettingGroup id="新しいgroup" ...> を1つ置けばよい。 */
+function SettingGroup({ id, core, onSet }) {
+  const items = groupsOf([id])[0]?.items ?? [];
+  return items.map((item, n) => {
+    const enabled = isEnabled(item, core);
+    const value = core[item.id];
+    return (
+      <div key={item.id} className={n === 0 ? "" : "mt-5"}
+        style={enabled ? undefined : { opacity: .45 }}>
+        <p style={{ fontFamily: DISPLAY }} className="text-sm font-bold mb-2">{item.label}</p>
+
+        {item.type === "toggle" && (
+          <button onClick={() => enabled && onSet(item.id, value === false)}
+            disabled={!enabled} aria-pressed={value !== false}
+            style={{ borderColor: C.lineDeep, color: C.ink }}
+            className="fx w-full border-2 rounded-2xl px-4 py-3 text-left text-sm font-bold">
+            {value !== false ? "オン — タップでオフ" : "オフ — タップでオン"}
+          </button>
+        )}
+
+        {item.type === "choice" && (
+          <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={item.label}>
+            {item.options.map(([val, lbl]) => {
+              const active = String(value) === String(val);
+              return (
+                <button key={String(val)} onClick={() => enabled && onSet(item.id, val)}
+                  disabled={!enabled} role="radio" aria-checked={active}
+                  style={active
+                    ? { background: C.pinkBtn, color: "#fff", borderColor: C.pink, ...sticker(C.pinkBtn) }
+                    : { background: C.surface, color: C.ink, borderColor: C.line }}
+                  className="fx border-2 rounded-2xl py-3 text-xs font-bold">
+                  {lbl}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {item.note && (
+          <p style={{ color: C.muted }} className="text-xs leading-relaxed mt-2">{item.note}</p>
+        )}
+      </div>
+    );
+  });
+}
+
 /* ================= せってい ================= */
 function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, onResetPlan, onCheers,
   onNotify, onToggleNotify, onEraseAll, onImport, onRest, onSet, onToggleSound }) {
@@ -177,50 +227,20 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
             この端末は読み上げに対応していないため、声の案内は鳴りません。音とテンポは使えます。
           </p>
         )}
-        {groupsOf(["coach"])[0]?.items.map((item, n) => {
-          const enabled = isEnabled(item, core);
-          const value = core[item.id];
-          return (
-            <div key={item.id} className={n === 0 ? "" : "mt-5"}
-              style={enabled ? undefined : { opacity: .45 }}>
-              <p style={{ fontFamily: DISPLAY }} className="text-sm font-bold mb-2">{item.label}</p>
-
-              {item.type === "toggle" && (
-                <button onClick={() => enabled && onSet(item.id, value === false)}
-                  disabled={!enabled} aria-pressed={value !== false}
-                  style={{ borderColor: C.lineDeep, color: C.ink }}
-                  className="fx w-full border-2 rounded-2xl px-4 py-3 text-left text-sm font-bold">
-                  {value !== false ? "オン — タップでオフ" : "オフ — タップでオン"}
-                </button>
-              )}
-
-              {item.type === "choice" && (
-                <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={item.label}>
-                  {item.options.map(([val, lbl]) => {
-                    const active = String(value) === String(val);
-                    return (
-                      <button key={String(val)} onClick={() => enabled && onSet(item.id, val)}
-                        disabled={!enabled} role="radio" aria-checked={active}
-                        style={active
-                          ? { background: C.pinkBtn, color: "#fff", borderColor: C.pink, ...sticker(C.pinkBtn) }
-                          : { background: C.surface, color: C.ink, borderColor: C.line }}
-                        className="fx border-2 rounded-2xl py-3 text-xs font-bold">
-                        {lbl}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {item.note && (
-                <p style={{ color: C.muted }} className="text-xs leading-relaxed mt-2">{item.note}</p>
-              )}
-            </div>
-          );
-        })}
+        <SettingGroup id="coach" core={core} onSet={onSet} />
       </div>
       <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-7 px-1">
         読み上げには端末に入っている音声を使います。文字がどこかへ送られることはありません。
+      </p>
+
+      {/* 続ける仕組み。settings.js の group:"keep" から自動で作る */}
+      <p style={{ color: C.muted }} className="text-xs mb-2 px-1">続ける仕組み</p>
+      <div style={card()} className="border-2 rounded-3xl px-5 py-5 mb-2">
+        <SettingGroup id="keep" core={core} onSet={onSet} />
+      </div>
+      <p style={{ color: C.muted }} className="text-xs leading-relaxed mb-7 px-1">
+        「診断どおり」は、はじめの質問で答えた週{Number(core.profile?.days) || 4}回です。
+        多すぎると感じたら減らしてかまいません。減らしても、メニューの中身は変わりません。
       </p>
 
       <p style={{ color: C.muted }} className="text-xs mb-2 px-1">セット間の休憩</p>

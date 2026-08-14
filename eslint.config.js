@@ -52,8 +52,9 @@ export default [
     },
   },
   {
-    /* 設定ファイルとビルド用スクリプトは Node の文脈で動く */
-    files: ["*.config.js", "scripts/**/*.mjs"],
+    /* 設定ファイルとビルド用スクリプトは Node の文脈で動く。
+       テストも Node 側で走るので、ソースそのものを読みにいくことがある */
+    files: ["*.config.js", "scripts/**/*.mjs", "src/**/*.test.{js,jsx}"],
     languageOptions: { globals: { ...globals.node } },
   },
 ];

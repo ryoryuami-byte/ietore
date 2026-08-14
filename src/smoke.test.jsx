@@ -117,6 +117,11 @@ describe("アプリの起動", () => {
 
     await go("マイページ");
     expect(el.textContent).toContain("すべての記録を消す");
+    /* settings.js に足した設定が、ちゃんと画面に出ているか。
+       ここが抜けると「保存も検証もされるのに、誰も触れない設定」になる */
+    for (const label of ["声で案内する", "週の目標", "連続日数の保護"]) {
+      expect(el.textContent, `${label} が設定画面に無い`).toContain(label);
+    }
 
     await go("ホーム");
     expect(el.textContent).toContain("今日のメニュー");

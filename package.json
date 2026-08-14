@@ -1,7 +1,7 @@
 {
   "name": "ietore",
   "private": true,
-  "version": "18.3.0",
+  "version": "18.4.0",
   "type": "module",
   "description": "イエトレ — 家でできる筋トレ・有酸素のメニューを自動で組み立てるアプリ",
   "scripts": {

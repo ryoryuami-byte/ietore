@@ -33,13 +33,25 @@
 **この方式にした理由。** 以前は設定を1つ足すのに3か所（初期値・検証・画面）を直す必要があり、
 どれか1つ忘れると「保存はされるのに、読み込むと消える」という気づきにくい壊れかたをしていました。
 
-新しい `group` を作った場合だけ、`src/screens/Settings.jsx` に
-`groupsOf(["新しいgroup"])` の描画を1つ足してください。
-既存の `coach` グループのコードをそのまま真似できます。
+新しい `group` を作った場合だけ、`src/screens/Settings.jsx` に見出しと
+`<SettingGroup id="新しいgroup" core={core} onSet={onSet} />` を置いてください。
+既存の `coach` と `keep` のコードをそのまま真似できます。
+
+```jsx
+<p style={{ color: C.muted }} className="text-xs mb-2 px-1">新しいまとまり</p>
+<div style={card()} className="border-2 rounded-3xl px-5 py-5 mb-7">
+  <SettingGroup id="新しいgroup" core={core} onSet={onSet} />
+</div>
+```
 
 > テストが見張っています。`src/settings.test.js` が
 > 「初期値が選択肢の中にあるか」「`DEFAULT_CORE` に入っているか」
-> 「`dependsOn` の相手が実在するか」を自動で確かめます。
+> 「`dependsOn` の相手が実在するか」に加えて、
+> **「`group` を持つ設定が、実際に設定画面から届くか」** を自動で確かめます。
+>
+> この最後の1つは、v18.4 で実際にやらかしたので足しました。
+> `settings.js` に足しただけだと初期値も検証も付いてくるので動いた気になりますが、
+> 画面に出し忘れると「保存はされるのに、誰も触れない設定」が静かにできあがります。
 
 ---
 
@@ -101,6 +113,8 @@ newExercise: {
 足したら `npm test` を回してください。
 `src/logic/plan.test.js` が **プロフィール288通り**で組み立てを試し、
 「流れの順序が崩れていないか」「有酸素が毎日2種目か」などを確かめます。
+`src/logic/swap.test.js` も同じ決まりを、1種目だけの差し替え（`swapOne`）について確かめます。
+種目を足すと差し替え先の候補にも自動で入るので、こちらも一緒に通ることを見てください。
 
 ---
 
@@ -110,7 +124,8 @@ newExercise: {
 - 部品 … `src/components/`
 
 `AppInner.jsx` が状態を持ち、画面へ渡しています。
-新しいタブを足す場合は `screens/Settings.jsx` の `TabBar` にも足してください。
+新しいタブを足す場合は `components/TabBar.jsx` の `TABS` に1行足し、
+`AppInner.jsx` の切り替えにその id を足してください。
 
 ---
 
@@ -162,7 +177,7 @@ newExercise: {
 
 ```bash
 npm run lint     # import の取りこぼしと未使用を見つけます
-npm test         # 119件以上。過去の不具合の回帰テストを含みます
+npm test         # 191件。過去の不具合の回帰テストを含みます
 npm run build
 npm run build:demo   # 触って確かめる用の1枚HTML
 ```

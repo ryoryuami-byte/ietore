@@ -11,8 +11,9 @@ import { requestPermission, syncSchedule } from "./notify.js";
 import { Consent } from "./screens/Consent.jsx";
 import { EX, FOCUS_META, PHASE_META, PHASE_ORDER, phaseOf } from "./exercises.js";
 import { shrinkImage } from "./image.js";
-import { buildDay, buildPlan, estimateMin, levelOf, mainIdOf, planIsValid, shortIds } from "./logic/plan.js";
+import { buildDay, buildPlan, estimateMin, hasSwap, levelOf, mainIdOf, planIsValid, shortIds, swapOne } from "./logic/plan.js";
 import { spec, stageOf } from "./logic/progress.js";
+import { computeStreak } from "./logic/streak.js";
 import { capPhotos, normalizeCore, normalizeLog, normalizePhotos } from "./logic/validate.js";
 import { EMPTY_PROFILE } from "./questions.js";
 import { CalendarView, RecordsView, WeekReview } from "./screens/LogView.jsx";
@@ -122,19 +123,9 @@ function AppInner() {
     const keys = Object.keys(log).filter(trained).sort();
     const lastTrained = keys.length ? keys[keys.length - 1] : null;
 
-    let streak = 0;
-    if (plan) {
-      const d = new Date(today);
-      for (let i = 0; i < 400; i++) {
-        const k = dateKey(d);
-        if (trained(k)) streak++;
-        else if (log[k]?.skip) { /* お休み申告：一時停止。連続は切らない */ }
-        else if (focusOn(d) === "rest") { /* もともと休みの日 */ }
-        else if (i === 0) { /* 今日はこれから */ }
-        else break;
-        d.setDate(d.getDate() - 1);
-      }
-    }
+    /* 連続日数と保護は logic/streak.js が持っている（テストしやすくするため） */
+    const st = computeStreak({ log, plan, today, dateKey, trained, freezeOn: core.freezeOn !== false });
+    const streak = st.days;
 
     let weeks = 0;
     const cur = new Date(today);
@@ -151,8 +142,19 @@ function AppInner() {
       else if (w > 0) break;
       cur.setDate(cur.getDate() - 7);
     }
-    return { trained, focusOn, lastTrained, streak, weeks };
-  }, [log, plan, today]);
+    /* 今週やりきった回数。週の目標のリングに使う（月曜はじまり） */
+    const weekStart = new Date(today);
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+    let weekDone = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + i);
+      if (d > today) break;
+      if (log[dateKey(d)]?.done) weekDone++;
+    }
+
+    return { trained, focusOn, lastTrained, streak, weeks, weekDone, frozen: st.frozen, brokeAt: st.brokeAt };
+  }, [log, plan, today, core.freezeOn]);
 
   const levelInfo = useMemo(() => stageOf(log), [log]);
 
@@ -225,6 +227,8 @@ function AppInner() {
   const lv = levelOf(profile);
   const { stage } = levelInfo;
   const restSec = REST_OPTIONS.includes(core.restSec) ? core.restSec : REST_SEC;
+  /* 週の目標。「診断どおり」なら、初回に答えた週の日数をそのまま使う */
+  const weekGoal = core.weekGoal === "auto" ? Number(profile.days) || 4 : Number(core.weekGoal) || 4;
   const rec = log[todayKey] ?? null;
 
   /* その日の量は途中で変えない。最初の記録時に強さを凍結する */
@@ -283,7 +287,21 @@ function AppInner() {
   if (detail) {
     return (
       <ExerciseDetail id={detail} lv={dayLv} stage={dayStage} half={dayHalf} restSec={restSec} core={core}
+        log={log} todayKey={todayKey}
         sets={setsDone(detail)} target={targetSets(detail)}
+        /* 短縮メニューの日は種目を絞ってあるので、差し替えは出さない */
+        swaps={dayHalf ? null : {
+          easier: hasSwap(profile, dayPlan.ids, detail, -1),
+          other: hasSwap(profile, dayPlan.ids, detail, 0),
+          harder: hasSwap(profile, dayPlan.ids, detail, 1),
+        }}
+        onSwap={(dir) => {
+          const ids = swapOne(profile, dayPlan.ids, detail, dir);
+          if (ids === dayPlan.ids) return;
+          setCore((prev) => ({ ...prev, plan: { ...plan, [dow]: { ...dayPlan, ids } } }));
+          /* 差し替えたら、その新しい種目の画面に移る */
+          setDetail(ids.find((x) => !dayPlan.ids.includes(x)) ?? null);
+        }}
         onAdd={(d) => addSet(detail, d)} onClose={() => setDetail(null)} />
     );
   }
@@ -350,7 +368,8 @@ function AppInner() {
             streak={stats.streak} weeks={stats.weeks} sealed={!!rec?.done}
             rest={dayPlan.focus === "rest"} lv={dayLv} stage={dayStage} half={dayHalf}
             dayIds={dayIds} dayLv={dayLv} dayStage={dayStage} restSec={restSec}
-            log={log} today={today} trainedToday={trainedToday} skipRec={rec?.skip}
+            log={log} today={today} todayKey={todayKey} trainedToday={trainedToday} skipRec={rec?.skip}
+            weekGoal={weekGoal} weekDone={stats.weekDone} frozen={stats.frozen} brokeAt={stats.brokeAt}
             onStart={() => setRunning(true)}
             onOpenTrain={() => setTab("train")}
             onSkip={() => setSkipOpen(true)} />

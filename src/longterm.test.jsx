@@ -9,6 +9,12 @@
 
    ここでは「3年ぶんの記録＋写真12枚」を流し込み、
    起動して画面が出るまでの時間と、集計そのものの時間を見る。
+
+   時間の上限は、実測（1年 2ms / 3年 6ms / 10年 8ms）よりかなり緩くしてある。
+   ここで見たいのは「6ms が 8ms になった」ではなく、
+   **桁が変わる劣化**（うっかり O(n^2) にしてしまった等）だけ。
+   テストは並列で走るので、CPU の取り合いで実測は数倍ぶれる。
+   きつい上限にすると、コードは正しいのに CI が赤くなる。
    ========================================================================= */
 import { describe, it, expect, beforeEach } from "vitest";
 import { act } from "react";
@@ -74,38 +80,38 @@ describe("3年ぶんの記録", () => {
     expect(Object.keys(log)).toHaveLength(YEARS3);
   });
 
-  it("段階の計算が 30ms 以内に終わる", () => {
+  it("段階の計算が 300ms 以内に終わる", () => {
     const t = performance.now();
     const r = stageOf(log);
     const ms = performance.now() - t;
     expect(r.stage).toBeGreaterThanOrEqual(0);
-    expect(ms, `${ms.toFixed(1)}ms かかった`).toBeLessThan(30);
+    expect(ms, `${ms.toFixed(1)}ms かかった`).toBeLessThan(300);
   });
 
-  it("部位別の累計が 50ms 以内に終わる", () => {
+  it("部位別の累計が 500ms 以内に終わる", () => {
     const t = performance.now();
     const totals = areaTotals(log);
     const ms = performance.now() - t;
     expect(Object.keys(totals).length).toBeGreaterThan(0);
-    expect(ms, `${ms.toFixed(1)}ms かかった`).toBeLessThan(50);
+    expect(ms, `${ms.toFixed(1)}ms かかった`).toBeLessThan(500);
   });
 
-  it("バッジの判定が 30ms 以内に終わる", () => {
+  it("バッジの判定が 300ms 以内に終わる", () => {
     const t = performance.now();
     const badges = badgeList(log, 150, 20);
     const ms = performance.now() - t;
     expect(badges.every((b) => b.got)).toBe(true);
-    expect(ms, `${ms.toFixed(1)}ms かかった`).toBeLessThan(30);
+    expect(ms, `${ms.toFixed(1)}ms かかった`).toBeLessThan(300);
   });
 
-  it("検証（読み込み時に必ず通る）が 200ms 以内に終わる", () => {
+  it("検証（読み込み時に必ず通る）が 1秒以内に終わる", () => {
     /* 起動のたびに走るので、ここが遅いと「よみこみ中…」が長引く */
     const t = performance.now();
     normalizeLog(log);
     normalizeCore({ profile: PROFILE, plan: PLAN, weights: makeWeights(156) });
     normalizePhotos(Array.from({ length: 12 }, (_, i) => ({ date: `2026-0${(i % 9) + 1}-01`, data: PNG })));
     const ms = performance.now() - t;
-    expect(ms, `${ms.toFixed(1)}ms かかった`).toBeLessThan(200);
+    expect(ms, `${ms.toFixed(1)}ms かかった`).toBeLessThan(1000);
   });
 });
 
@@ -127,7 +133,7 @@ describe("3年ぶんの記録がある状態でのアプリの起動", () => {
     ));
   };
 
-  it("ホームが 1.5秒以内に出る", async () => {
+  it("ホームが 3秒以内に出る", async () => {
     seed();
     const el = document.createElement("div");
     document.body.appendChild(el);
@@ -136,7 +142,7 @@ describe("3年ぶんの記録がある状態でのアプリの起動", () => {
     await act(async () => root.render(<App />));
     const ms = performance.now() - t;
     expect(el.textContent).toContain("今日のメニュー");
-    expect(ms, `${ms.toFixed(0)}ms かかった`).toBeLessThan(1500);
+    expect(ms, `${ms.toFixed(0)}ms かかった`).toBeLessThan(3000);
     await act(async () => root.unmount());
   });
 
@@ -154,7 +160,7 @@ describe("3年ぶんの記録がある状態でのアプリの起動", () => {
     const ms = performance.now() - t;
 
     expect(el.textContent).toContain("今週やりきった回数");
-    expect(ms, `${ms.toFixed(0)}ms かかった`).toBeLessThan(2000);
+    expect(ms, `${ms.toFixed(0)}ms かかった`).toBeLessThan(3000);
     await act(async () => root.unmount());
   });
 
