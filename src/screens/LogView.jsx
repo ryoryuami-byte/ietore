@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { WeekSummary } from "../components/WeekSummary.jsx";
-import { BadgeGrid, badgeList } from "../components/badges.jsx";
+import { BadgeGrid } from "../components/badges.jsx";
 import { EX } from "../exercises.js";
 import { useBodyLock } from "../hooks.js";
+import { levelsOf, metricsOf, seriesDisplay } from "../logic/badges.js";
 import { wantedAreas } from "../logic/plan.js";
 import { defaultPhotoOfMonth, monthLabel, monthsBetween, monthsWithPhotos, photosInMonth } from "../logic/photos.js";
 import { spec } from "../logic/progress.js";
@@ -134,7 +135,7 @@ function CalendarView({ log, plan, today, todayKey, weeks, focusOn, trainedOn, l
 }
 
 /* ================= 記録（からだ・写真・バッジ） ================= */
-function RecordsView({ core, log, photos, today, todayKey, weeks, focusOn,
+function RecordsView({ core, log, photos, today, todayKey, streak,
   onWeight, onPhoto, onDeletePhoto }) {
   /* 今週ぶんが保存済みなら、その値を出しておく（打ち間違いを直せるように） */
   const saved = (core.weights ?? []).find((w) => w.date === todayKey) ?? null;
@@ -161,7 +162,11 @@ function RecordsView({ core, log, photos, today, todayKey, weeks, focusOn,
     for (let i = 3; i < weights.length; i++) out.push((weights[i].kg + weights[i - 1].kg + weights[i - 2].kg + weights[i - 3].kg) / 4);
     return out;
   }, [weights]);
-  const badges = badgeList(log, weeks, trainedStreakFromLog(log, today, focusOn));
+  /* バッジ。streak は AppInner の stats.streak（連続日数の保護つき）をそのまま使う。
+     Home の「連続 N 日」と、ここのバッジの段が食い違わないように */
+  const badgeMetrics = useMemo(() => metricsOf({ log, streak, photos, weights: core.weights }),
+    [log, streak, photos, core.weights]);
+  const badgeSeries = useMemo(() => seriesDisplay(levelsOf(badgeMetrics), badgeMetrics), [badgeMetrics]);
 
   /* 打ち間違い（60.0 を 600 など）をそのまま保存するとグラフが壊れ、
      直せるのは次の日曜になってしまうので、3項目とも範囲を見る */
@@ -325,10 +330,12 @@ function RecordsView({ core, log, photos, today, todayKey, weeks, focusOn,
         {photos.length > 0 && <p style={{ color: C.muted }} className="text-xs mt-2 text-center">写真をタップすると削除できます（確認あり）</p>}
       </div>
 
-      {/* バッジ */}
+      {/* バッジ。段の合計で進みぐあいを見せる（1シリーズで複数段ぶん進むため） */}
       <h2 style={{ fontFamily: DISPLAY }} className="text-sm font-bold mb-1 px-1 mt-8">あつめたバッジ</h2>
-      <p style={{ color: C.muted }} className="text-xs mb-3 px-1">{badges.filter((b) => b.got).length} / {badges.length} 個</p>
-      <BadgeGrid badges={badges} />
+      <p style={{ color: C.muted }} className="text-xs mb-3 px-1">
+        {badgeSeries.reduce((n, s) => n + s.level, 0)} / {badgeSeries.reduce((n, s) => n + s.maxLevel, 0)} 段
+      </p>
+      <BadgeGrid series={badgeSeries} />
 
       {compareOpen && <PhotoCompare photos={photos} onClose={() => setCompareOpen(false)} />}
       {monthlyOpen && <MonthlyPhotoCompare photos={photos} onClose={() => setMonthlyOpen(false)} />}
@@ -345,22 +352,6 @@ function RecordsView({ core, log, photos, today, todayKey, weeks, focusOn,
   );
 }
 
-
-/* バッジ用に連続日数をもう一度計算する（LogViewは単体で使えるようにしておく） */
-function trainedStreakFromLog(log, today, focusOn) {
-  let n = 0;
-  const d = new Date(today);
-  for (let i = 0; i < 400; i++) {
-    const k = dateKey(d);
-    if (Object.values(log[k]?.ex ?? {}).some((v) => v > 0)) n++;
-    else if (log[k]?.skip) { /* 一時停止 */ }
-    else if (focusOn(d) === "rest") { /* 休みの日 */ }
-    else if (i === 0) { /* 今日はこれから */ }
-    else break;
-    d.setDate(d.getDate() - 1);
-  }
-  return n;
-}
 
 function Legend({ color, label, border, dot }) {
   return (

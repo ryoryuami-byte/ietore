@@ -20,8 +20,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
-import { badgeList } from "./components/badges.jsx";
 import { LEGAL_VERSION } from "./legal.js";
+import { levelsOf, metricsOf, SERIES } from "./logic/badges.js";
 import { buildPlan } from "./logic/plan.js";
 import { stageOf } from "./logic/progress.js";
 import { normalizeCore, normalizeLog, normalizePhotos } from "./logic/validate.js";
@@ -98,9 +98,11 @@ describe("3年ぶんの記録", () => {
 
   it("バッジの判定が 300ms 以内に終わる", () => {
     const t = performance.now();
-    const badges = badgeList(log, 150, 20);
+    const metrics = metricsOf({ log, streak: 1500, photos: Array.from({ length: 24 }, () => ({})), weights: makeWeights(150) });
+    const levels = levelsOf(metrics);
     const ms = performance.now() - t;
-    expect(badges.every((b) => b.got)).toBe(true);
+    /* 3年間、毎日・すべての種目をやりきった記録なので、全シリーズが最後の段まで届く */
+    for (const s of SERIES) expect(levels[s.id], s.id).toBe(s.tiers.length);
     expect(ms, `${ms.toFixed(1)}ms かかった`).toBeLessThan(300);
   });
 

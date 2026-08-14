@@ -142,6 +142,40 @@ newExercise: {
 
 ---
 
+## 3.6 バッジのシリーズを足す
+
+**`src/logic/badges.js` の `SERIES` に1つ足すだけです。**
+
+```js
+{
+  id: "cardio", label: "有酸素の合計", metric: "cardioMin", unit: "分",
+  tiers: [
+    { need: 60, emoji: "🏃", name: "1時間ぶん", desc: "有酸素を合計60分" },
+    { need: 300, emoji: "🚴", name: "5時間ぶん", desc: "有酸素を合計300分" },
+  ],
+},
+```
+
+| 項目 | 意味 |
+| --- | --- |
+| `id` | `core.badgeSeen` のキーになる。あとから変えないこと（変えると、そのシリーズだけ基準が失われ、次に開いたときに全段お祝いしてしまう） |
+| `metric` | `metricsOf()` が返すオブジェクトのキー。無ければ `metricsOf` にも足す |
+| `unit` | 「つぎ：◯◯（あと5{unit}）」の{unit} |
+| `tiers` | `need` の昇順で並べる。段は自動でここから作られる |
+
+`metricsOf({ log, streak, photos, weights })` が生の記録から「ものさし」の値を
+取り出す場所です。新しい metric が必要なら、ここに1行足してください。
+`log` から取れないもの（体重・写真など）は、呼び出し側（`AppInner.jsx`・
+`RecordsView`）で引数を増やす必要があります。
+
+**画面（`components/badges.jsx`）もお祝い（`screens/Home.jsx`）も直す必要はありません。**
+どちらも `SERIES` を見て自動でシリーズを増減させます。
+
+> テストが見張っています。`logic/badges.test.js` が段の判定・新しく上がった分の
+> 検出・画面向けの整形を確かめます。数字を変えたら、ここのテストも見直してください。
+
+---
+
 ## 4. 画面を足す
 
 - 大きい画面 … `src/screens/`
@@ -212,7 +246,7 @@ newExercise: {
 
 ```bash
 npm run lint     # import の取りこぼしと未使用を見つけます
-npm test         # 242件。過去の不具合の回帰テストを含みます
+npm test         # 261件。過去の不具合の回帰テストを含みます
 npm run build
 npm run build:demo   # 触って確かめる用の1枚HTML
 npm run shots        # 明るい／暗いの画面を撮る。横のはみ出しも見る

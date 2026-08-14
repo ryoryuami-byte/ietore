@@ -1,5 +1,6 @@
 import { EX, FOCUS_META } from "../exercises.js";
 import { AREA_Q, AVOID_Q, REASON_Q, TENDENCY_Q } from "../questions.js";
+import { SERIES } from "./badges.js";
 import { buildPlan, planIsValid } from "./plan.js";
 import { LEVELS, STAGE_MAX } from "./progress.js";
 import { DEFAULT_CORE } from "../storage.js";
@@ -54,6 +55,18 @@ function normalizeCore(raw) {
   /* 健康状態の答え。知らない値が混ざっても落ちないよう、文字列だけに絞る */
   c.health = (Array.isArray(c.health) ? c.health : [])
     .filter((x) => typeof x === "string" && x.length <= 20).slice(0, 10);
+  /* バッジの基準。知らないシリーズIDや、段の数を超える値は落とす
+     （引き継ぎファイルを手で書き換えられても、無い段を「見せた」ことにしない） */
+  if (isPlainObj(c.badgeSeen)) {
+    const out = {};
+    for (const s of SERIES) {
+      const v = Math.floor(Number(c.badgeSeen[s.id]));
+      out[s.id] = isFinite(v) && v > 0 ? Math.min(v, s.tiers.length) : 0;
+    }
+    c.badgeSeen = out;
+  } else {
+    c.badgeSeen = null;
+  }
   c.profile = isPlainObj(c.profile) ? normalizeProfile(c.profile) : null;
   if (!c.profile) c.plan = null;
   else if (!planIsValid(c.plan)) c.plan = buildPlan(c.profile);

@@ -97,10 +97,12 @@ const FigStyles = () => (
     .cheer{animation:cheer .5s cubic-bezier(.2,1.4,.4,1) both}
     .wiggle{animation:wiggle 1.6s ease-in-out infinite}
     .confetti{position:absolute;width:9px;height:14px;border-radius:3px;animation:rise 1.6s ease-out forwards}
+    @keyframes sparkle{0%,100%{opacity:0;transform:scale(.4) rotate(0deg)}50%{opacity:1;transform:scale(1) rotate(18deg)}}
+    .sparkle{position:absolute;font-size:14px;line-height:1;animation:sparkle 1.6s ease-in-out infinite;pointer-events:none}
     /* キーボード操作時のフォーカスを必ず見えるようにする（色を自前で指定） */
     .fx:focus{outline:none}
     .fx:focus-visible{outline:3px solid #6E4FB8;outline-offset:2px}
-    @media (prefers-reduced-motion: reduce){[class*="an-"],.pop,.cheer,.wiggle,.confetti{animation:none!important}}
+    @media (prefers-reduced-motion: reduce){[class*="an-"],.pop,.cheer,.wiggle,.confetti,.sparkle{animation:none!important}}
   `}</style>
 );
 

@@ -11,6 +11,7 @@ import { requestPermission, syncSchedule } from "./notify.js";
 import { Consent } from "./screens/Consent.jsx";
 import { EX, FOCUS_META, PHASE_META, PHASE_ORDER, phaseOf } from "./exercises.js";
 import { shrinkImage } from "./image.js";
+import { levelsOf, metricsOf, newlyReached } from "./logic/badges.js";
 import { buildDay, buildPlan, estimateMin, hasSwap, levelOf, mainIdOf, planIsValid, shortIds, swapOne } from "./logic/plan.js";
 import { spec, stageOf } from "./logic/progress.js";
 import { computeStreak } from "./logic/streak.js";
@@ -168,6 +169,26 @@ function AppInner() {
   }, [log, plan, today, core.freezeOn]);
 
   const levelInfo = useMemo(() => stageOf(log), [log]);
+
+  /* バッジ。段の判定は logic/badges.js（streak は保護つきの stats.streak を使う） */
+  const badgeMetrics = useMemo(() => metricsOf({ log, streak: stats.streak, photos, weights: core.weights }),
+    [log, stats.streak, photos, core.weights]);
+  const badgeLevels = useMemo(() => levelsOf(badgeMetrics), [badgeMetrics]);
+
+  /* 基準（core.badgeSeen）がまだ無ければ、いまの段を黙って基準にする。
+     お祝いはしない。ここで祝ってしまうと、この仕組みを入れた時点で
+     何年も続けている人に、持っている段ぜんぶを「たったいま入手した」と
+     一気に見せることになる */
+  useEffect(() => {
+    if (!ready) return;
+    setCore((prev) => (prev.badgeSeen != null ? prev : { ...prev, badgeSeen: badgeLevels }));
+  }, [ready, badgeLevels]);
+
+  /* 基準より上がった段。ホームでお祝いする対象。
+     badgeSeen が無い（＝上の効果がまだ効いていない、最初の1回だけ）間は、
+     お祝いを出さない */
+  const newBadges = core.badgeSeen == null ? [] : newlyReached(badgeLevels, core.badgeSeen);
+  const dismissBadges = () => setCore((prev) => ({ ...prev, badgeSeen: badgeLevels }));
 
   /* お知らせの予約を入れ直す。
 
@@ -389,6 +410,7 @@ function AppInner() {
             dayIds={dayIds} dayLv={dayLv} dayStage={dayStage} restSec={restSec}
             log={log} today={today} todayKey={todayKey} trainedToday={trainedToday} skipRec={rec?.skip}
             weekGoal={weekGoal} weekDone={stats.weekDone} frozen={stats.frozen} brokeAt={stats.brokeAt}
+            newBadges={newBadges} onDismissBadges={dismissBadges}
             onStart={() => setRunning(true)}
             onOpenTrain={() => setTab("train")}
             onSkip={() => setSkipOpen(true)} />
@@ -472,7 +494,7 @@ function AppInner() {
 
         {tab === "log" && (
           <RecordsView core={core} log={log} photos={photos} today={today} todayKey={todayKey}
-            weeks={stats.weeks} focusOn={stats.focusOn}
+            streak={stats.streak}
             onWeight={(kg, waist, thigh) => setCore((prev) => ({
               ...prev,
               /* 同じ日曜日に入れ直したら上書き。並びは日付順に保つ */

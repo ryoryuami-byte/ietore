@@ -130,6 +130,68 @@ describe("アプリの起動", () => {
   });
 });
 
+describe("バッジ（v18.6 で追加）", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    document.body.innerHTML = "";
+  });
+
+  /* すでに何日か記録がある状態を作る */
+  const withHistory = (days) => {
+    const log = {};
+    const today = new Date();
+    for (let i = 1; i <= days; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      log[k] = { ex: { squat: 3 }, done: true };
+    }
+    window.localStorage.setItem("hometrain:log:v1", JSON.stringify(log));
+  };
+
+  it("すでに記録がある人（badgeSeen が無い）を開いても、お祝いは出ない", async () => {
+    /* この仕組みを入れる前から使っていた人に、持っている段ぜんぶを
+       「たったいま入手した」と一気に見せてはいけない */
+    window.localStorage.setItem("hometrain:core:v1", JSON.stringify({
+      name: "ながねん", profile: PROFILE, plan: buildPlan(PROFILE), consent: CONSENT,
+    }));
+    withHistory(60);
+
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const root = createRoot(el);
+    await act(async () => root.render(<App />));
+
+    expect(el.textContent).not.toContain("入手しました");
+
+    await act(async () => root.unmount());
+  });
+
+  it("基準より段が上がっていれば、ホームでお祝いする", async () => {
+    window.localStorage.setItem("hometrain:core:v1", JSON.stringify({
+      name: "さくら", profile: PROFILE, plan: buildPlan(PROFILE), consent: CONSENT,
+      badgeSeen: { streak: 0, count: 0, notes: 0, photos: 0, areas: 0, weight: 0 },
+    }));
+    withHistory(8);
+
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const root = createRoot(el);
+    await act(async () => root.render(<App />));
+
+    expect(el.textContent).toContain("入手しました");
+    expect(el.textContent).toContain("1週間つづいた");
+
+    /* タップで消せる */
+    const close = [...el.querySelectorAll("button")].find((b) => b.getAttribute("aria-label") === "バッジのお知らせをとじる");
+    expect(close, "とじるボタンが見つからない").toBeTruthy();
+    await act(async () => close.click());
+    expect(el.textContent).not.toContain("入手しました");
+
+    await act(async () => root.unmount());
+  });
+});
+
 describe("メニューの組み立て", () => {
   it("作ったプランが、そのまま検証を通る", () => {
     expect(planIsValid(buildPlan(PROFILE))).toBe(true);

@@ -86,6 +86,21 @@ describe("normalizeCore", () => {
     expect(normalizeCore({}).consent).toBe(null);
   });
 
+  it("バッジの基準が無ければ null のまま（黙って基準を作るのは AppInner の役目）", () => {
+    expect(normalizeCore({}).badgeSeen).toBe(null);
+    expect(normalizeCore({ badgeSeen: "x" }).badgeSeen).toBe(null);
+    expect(normalizeCore({ badgeSeen: [1, 2, 3] }).badgeSeen).toBe(null);
+  });
+
+  it("バッジの基準は、知っているシリーズだけ、段の数までに収める", () => {
+    const c = normalizeCore({ badgeSeen: { streak: 2, count: 999, ないシリーズ: 5, weight: -1, notes: "x" } });
+    expect(c.badgeSeen.streak).toBe(2);
+    expect(c.badgeSeen.count).toBeLessThanOrEqual(7); /* count シリーズの段の数 */
+    expect(c.badgeSeen).not.toHaveProperty("ないシリーズ");
+    expect(c.badgeSeen.weight).toBe(0);
+    expect(c.badgeSeen.notes).toBe(0);
+  });
+
   it("健康状態は、文字列だけに絞る", () => {
     const c = normalizeCore({ health: ["pregnant", 42, null, "x".repeat(50), "chronic"] });
     expect(c.health).toEqual(["pregnant", "chronic"]);

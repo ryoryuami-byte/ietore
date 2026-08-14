@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Fig } from "../components/Fig.jsx";
 import { Header } from "../components/common.jsx";
 import { WeekSummary } from "../components/WeekSummary.jsx";
@@ -6,6 +7,68 @@ import { estimateMin } from "../logic/plan.js";
 import { MILESTONE_WORDS, milestoneOf, recoveryMessage } from "../logic/streak.js";
 import { C, DISPLAY, card, sticker } from "../tokens.js";
 import { daysBetween } from "../utils.js";
+
+/* キラキラの位置。見た目がランダムっぽく散らばればよいだけなので、
+   計算しなおす理由が無い（乱数を使うと再描画のたびに星が飛び回る） */
+const SPARKLES = Array.from({ length: 10 }, (_, i) => ({
+  left: 4 + ((i * 37) % 92), top: 6 + ((i * 53) % 78), delay: (i % 5) * 0.22,
+}));
+
+/* バッジが新しく上がったときの、キラキラしたお祝いカード。
+   段の判定そのものは logic/badges.js（ここは表示だけ）。
+
+   タップで消せるほか、9秒たつと自分から消える。
+   「とじる」を押し忘れて居座り続けるより、そのほうが邪魔にならない。
+   段が変わらない限り（key が同じ限り）、消えるタイマーは作り直さない
+   ——親の再描画のたびにタイマーが延び続けて、いつまでも消えない、を防ぐため。 */
+function BadgeCelebration({ badges, onClose }) {
+  const close = useRef(onClose);
+  close.current = onClose;
+  const key = badges.map((b) => `${b.seriesId}-${b.level}`).join(",");
+
+  useEffect(() => {
+    const t = setTimeout(() => close.current(), 9000);
+    return () => clearTimeout(t);
+  }, [key]);
+
+  const one = badges.length === 1 ? badges[0] : null;
+
+  return (
+    <div style={{ background: C.pinkSoft, borderColor: C.gold }}
+      className="relative border-2 rounded-3xl px-5 py-5 text-center cheer overflow-hidden">
+      {SPARKLES.map((s, i) => (
+        <span key={i} className="sparkle" aria-hidden="true"
+          style={{ left: `${s.left}%`, top: `${s.top}%`, animationDelay: `${s.delay}s` }}>✨</span>
+      ))}
+      <button onClick={onClose} aria-label="バッジのお知らせをとじる" style={{ color: C.muted }}
+        className="fx absolute top-2 right-2 w-8 h-8 rounded-full text-sm">✕</button>
+
+      {one ? (
+        <>
+          <p className="text-4xl mb-2 pop" aria-hidden="true">{one.emoji}</p>
+          <p style={{ fontFamily: DISPLAY, color: C.pinkDeep }} className="text-lg font-bold">
+            「{one.name}」バッジを入手しました！
+          </p>
+          <p style={{ color: C.muted }} className="text-xs mt-1">{one.desc}</p>
+        </>
+      ) : (
+        <>
+          <p className="text-4xl mb-2 pop" aria-hidden="true">🎉</p>
+          <p style={{ fontFamily: DISPLAY, color: C.pinkDeep }} className="text-lg font-bold mb-2">
+            バッジを {badges.length} 個、入手しました！
+          </p>
+          <div className="grid gap-1">
+            {badges.map((b) => (
+              <p key={`${b.seriesId}-${b.level}`} style={{ color: C.ink }} className="text-sm font-bold">
+                <span aria-hidden="true">{b.emoji}</span> 「{b.name}」
+              </p>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 /* =========================================================================
    ホーム。
@@ -23,8 +86,8 @@ import { daysBetween } from "../utils.js";
 function Home({
   name, dow, meta, pct, done, total, streak, weeks, sealed, rest, lv, stage, half,
   dayIds, dayLv, dayStage, restSec, log, today, todayKey, trainedToday, skipRec,
-  weekGoal, weekDone, frozen, brokeAt,
-  onStart, onOpenTrain, onSkip,
+  weekGoal, weekDone, frozen, brokeAt, newBadges = [],
+  onStart, onOpenTrain, onSkip, onDismissBadges,
 }) {
   const mains = dayIds.filter((id) => phaseOf(id) === "main");
   const minutes = estimateMin(dayIds, dayLv, dayStage, half, restSec);
@@ -49,6 +112,9 @@ function Home({
     <div className="mt-2 grid gap-5">
       <Header name={name} dow={dow} meta={meta} pct={pct} done={done} total={total}
         streak={streak} weeks={weeks} sealed={sealed} rest={rest} lv={lv} stage={stage} half={half} />
+
+      {/* バッジのお祝い。段が上がった直後だけ出る（logic/badges.js が判定） */}
+      {newBadges.length > 0 && <BadgeCelebration badges={newBadges} onClose={onDismissBadges} />}
 
       {/* 節目のお祝い。数字だけでなく、何を成し遂げたかを言う */}
       {words && (

@@ -27,6 +27,12 @@ const DEFAULT_CORE = {
   name: "", profile: null, plan: null, weights: [], cheers: [], weekSeen: "",
   consent: null, /* 注意書きと規約に同意した記録 */
   health: [],    /* 初回に聞いた健康状態 */
+  /* バッジの「前回まで見せた段」。null は「まだ基準を作っていない」の意味で、
+     空オブジェクト {}（=全シリーズ0段）とはあえて区別している。
+     null のままなら、AppInner がいまの段をお祝いせずに黙って基準にする。
+     こうしないと、この仕組みを入れた時点で何年も続けている人に、
+     持っている段ぜんぶを「たったいま入手した」と一気に見せてしまう */
+  badgeSeen: null,
   ...defaults(),
 };
 
