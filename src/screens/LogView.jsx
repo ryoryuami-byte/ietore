@@ -10,16 +10,21 @@ import { BODY, C, card, DISPLAY, page, sticker } from "../tokens.js";
 import { DAY_JP, dateKey, daysBetween, toArr } from "../utils.js";
 
 /* ================= きろく ================= */
-function LogView({ core, log, photos, plan, today, todayKey, weeks, focusOn, trainedOn, lv, stage,
-  onWeight, onNote, onPhoto, onDeletePhoto, onEditDay, onToggleDayEx }) {
-  /* 今週ぶんが保存済みなら、その値を出しておく（打ち間違いを直せるように） */
-  const saved = (core.weights ?? []).find((w) => w.date === todayKey) ?? null;
-  const [input, setInput] = useState(() => (saved ? String(saved.kg) : ""));
-  const [waist, setWaist] = useState(() => (saved?.waist ? String(saved.waist) : ""));
-  const [thigh, setThigh] = useState(() => (saved?.thigh ? String(saved.thigh) : ""));
-  const [photoErr, setPhotoErr] = useState("");
-  const [delPhoto, setDelPhoto] = useState(null);
-  const [compareOpen, setCompareOpen] = useState(false);
+
+/* =========================================================================
+   きろくを2つの画面に分けた（v18.3）。
+
+   タブが5つになり、「記録」と「カレンダー」が別々の入口になったため。
+   1つの画面に全部載せていたころは縦に長く、
+   グラフだけ見たい人もカレンダーを通り過ぎる必要があった。
+
+   共通の部品（Legend / NoteSheet / ConfirmSheet / グラフ）は
+   このファイルの下のほうに、これまでどおり置いてある。
+   ========================================================================= */
+
+/* ================= カレンダー ================= */
+function CalendarView({ log, plan, today, todayKey, weeks, focusOn, trainedOn, lv, stage,
+  onNote, onEditDay, onToggleDayEx }) {
   const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [picked, setPicked] = useState(null);
 
@@ -34,22 +39,6 @@ function LogView({ core, log, photos, plan, today, todayKey, weeks, focusOn, tra
   const shift = (n) => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1));
   const monthDone = cells.filter((d) => d && d <= today && trainedOn(dateKey(d))).length;
 
-  const weights = Array.isArray(core.weights) ? core.weights : [];
-  const last = weights[weights.length - 1];
-  const isSunday = today.getDay() === 0;
-  const canInput = core.trackWeight && isSunday;
-  const daysToSunday = (7 - today.getDay()) % 7;
-
-  const reasons = toArr(core.profile?.stopReason);
-  const waistSeries = weights.filter((w) => w.waist).map((w) => w.waist);
-  const thighSeries = weights.filter((w) => w.thigh).map((w) => w.thigh);
-  const ma = useMemo(() => {
-    const out = [];
-    for (let i = 3; i < weights.length; i++) out.push((weights[i].kg + weights[i - 1].kg + weights[i - 2].kg + weights[i - 3].kg) / 4);
-    return out;
-  }, [weights]);
-  const badges = badgeList(log, weeks, trainedStreakFromLog(log, today, focusOn));
-
   /* タップした日のメニュー。記録済みの種目と、その曜日の予定を合わせて出す */
   const pickedRec = picked ? log[picked] ?? null : null;
   const pickedIds = picked
@@ -61,26 +50,6 @@ function LogView({ core, log, photos, plan, today, todayKey, weeks, focusOn, tra
   const pickedTargets = Object.fromEntries(pickedIds.map((id) => [
     id, spec(EX[id], pickedRec?.lv ?? lv, pickedRec?.stage ?? stage, pickedRec?.short === true).sets,
   ]));
-
-  /* 打ち間違い（60.0 を 600 など）をそのまま保存するとグラフが壊れ、
-     直せるのは次の日曜になってしまうので、3項目とも範囲を見る */
-  const rangeErr = (raw, lo, hi, unit) => {
-    const s = String(raw ?? "").trim();
-    if (!s) return "";
-    const v = Number(s);
-    if (!isFinite(v)) return "数字で入力してください";
-    if (v < lo || v > hi) return `${lo}〜${hi}${unit} の範囲で入力してください`;
-    return "";
-  };
-  const wErr = rangeErr(input, 25, 200, "kg");
-  const waistErr = rangeErr(waist, 40, 200, "cm");
-  const thighErr = rangeErr(thigh, 25, 120, "cm");
-  const anyErr = !!(wErr || waistErr || thighErr);
-  /* 診断と同じ基準を毎週の入力にも当てる。止めはしないが、黙って記録もしない */
-  const hCm = Number(core.profile?.height);
-  const wNum = Number(input);
-  const lowWarn = !wErr && isFinite(hCm) && hCm > 0 && isFinite(wNum) && wNum > 0
-    && wNum / ((hCm / 100) ** 2) < 18.5;
 
   return (
     <div className="mt-2">
@@ -146,6 +115,69 @@ function LogView({ core, log, photos, plan, today, todayKey, weeks, focusOn, tra
         <p style={{ color: C.muted }} className="text-xs text-center mt-3">日付をタップすると、メモと後からの記録ができます</p>
       </div>
 
+      {picked && (
+        <NoteSheet dateStr={picked} initial={log[picked]?.note ?? ""}
+          trained={trainedOn(picked)} skip={log[picked]?.skip} done={!!log[picked]?.done}
+          ids={pickedIds} exCounts={log[picked]?.ex ?? {}} targets={pickedTargets}
+          onToggleEx={(id) => onToggleDayEx(picked, id)}
+          onToggleDone={() => onEditDay(picked, { done: !log[picked]?.done })}
+          onClose={() => setPicked(null)}
+          onSave={(text) => { onNote(picked, text); setPicked(null); }} />
+      )}
+    </div>
+  );
+}
+
+/* ================= 記録（からだ・写真・バッジ） ================= */
+function RecordsView({ core, log, photos, today, todayKey, weeks, focusOn,
+  onWeight, onPhoto, onDeletePhoto }) {
+  /* 今週ぶんが保存済みなら、その値を出しておく（打ち間違いを直せるように） */
+  const saved = (core.weights ?? []).find((w) => w.date === todayKey) ?? null;
+  const [input, setInput] = useState(() => (saved ? String(saved.kg) : ""));
+  const [waist, setWaist] = useState(() => (saved?.waist ? String(saved.waist) : ""));
+  const [thigh, setThigh] = useState(() => (saved?.thigh ? String(saved.thigh) : ""));
+  const [photoErr, setPhotoErr] = useState("");
+  const [delPhoto, setDelPhoto] = useState(null);
+  const [compareOpen, setCompareOpen] = useState(false);
+
+  const weights = Array.isArray(core.weights) ? core.weights : [];
+  const last = weights[weights.length - 1];
+  const isSunday = today.getDay() === 0;
+  const canInput = core.trackWeight && isSunday;
+  const daysToSunday = (7 - today.getDay()) % 7;
+
+  const reasons = toArr(core.profile?.stopReason);
+  const waistSeries = weights.filter((w) => w.waist).map((w) => w.waist);
+  const thighSeries = weights.filter((w) => w.thigh).map((w) => w.thigh);
+  const ma = useMemo(() => {
+    const out = [];
+    for (let i = 3; i < weights.length; i++) out.push((weights[i].kg + weights[i - 1].kg + weights[i - 2].kg + weights[i - 3].kg) / 4);
+    return out;
+  }, [weights]);
+  const badges = badgeList(log, weeks, trainedStreakFromLog(log, today, focusOn));
+
+  /* 打ち間違い（60.0 を 600 など）をそのまま保存するとグラフが壊れ、
+     直せるのは次の日曜になってしまうので、3項目とも範囲を見る */
+  const rangeErr = (raw, lo, hi, unit) => {
+    const s = String(raw ?? "").trim();
+    if (!s) return "";
+    const v = Number(s);
+    if (!isFinite(v)) return "数字で入力してください";
+    if (v < lo || v > hi) return `${lo}〜${hi}${unit} の範囲で入力してください`;
+    return "";
+  };
+  const wErr = rangeErr(input, 25, 200, "kg");
+  const waistErr = rangeErr(waist, 40, 200, "cm");
+  const thighErr = rangeErr(thigh, 25, 120, "cm");
+  const anyErr = !!(wErr || waistErr || thighErr);
+  /* 診断と同じ基準を毎週の入力にも当てる。止めはしないが、黙って記録もしない */
+  const hCm = Number(core.profile?.height);
+  const wNum = Number(input);
+  const lowWarn = !wErr && isFinite(hCm) && hCm > 0 && isFinite(wNum) && wNum > 0
+    && wNum / ((hCm / 100) ** 2) < 18.5;
+
+  return (
+    <div className="mt-2">
       {core.trackWeight && (
         <>
           <h2 style={{ fontFamily: DISPLAY }} className="text-sm font-bold mb-1 px-1">体重（日曜日だけ）</h2>
@@ -284,16 +316,6 @@ function LogView({ core, log, photos, plan, today, todayKey, weeks, focusOn, tra
       <p style={{ color: C.muted }} className="text-xs mb-3 px-1">{badges.filter((b) => b.got).length} / {badges.length} 個</p>
       <BadgeGrid badges={badges} />
 
-      {picked && (
-        <NoteSheet dateStr={picked} initial={log[picked]?.note ?? ""}
-          trained={trainedOn(picked)} skip={log[picked]?.skip} done={!!log[picked]?.done}
-          ids={pickedIds} exCounts={log[picked]?.ex ?? {}} targets={pickedTargets}
-          onToggleEx={(id) => onToggleDayEx(picked, id)}
-          onToggleDone={() => onEditDay(picked, { done: !log[picked]?.done })}
-          onClose={() => setPicked(null)}
-          onSave={(text) => { onNote(picked, text); setPicked(null); }} />
-      )}
-
       {compareOpen && <PhotoCompare photos={photos} onClose={() => setCompareOpen(false)} />}
 
       {delPhoto && (
@@ -307,6 +329,7 @@ function LogView({ core, log, photos, plan, today, todayKey, weeks, focusOn, tra
     </div>
   );
 }
+
 
 /* バッジ用に連続日数をもう一度計算する（LogViewは単体で使えるようにしておく） */
 function trainedStreakFromLog(log, today, focusOn) {
@@ -687,4 +710,4 @@ function WeekReview({ log, today, weeks, streak, needWeight, onClose }) {
   );
 }
 
-export { ConfirmSheet, LogView, WeekReview };
+export { CalendarView, ConfirmSheet, RecordsView, WeekReview };

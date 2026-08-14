@@ -10,7 +10,7 @@ import { speechSupported } from "../speech.js";
 import { SESSIONS_PER_STAGE, STAGE_MAX, STAGE_STEP, lvMeta } from "../logic/progress.js";
 import { LegalText } from "./Legal.jsx";
 import { ConfirmSheet } from "./LogView.jsx";
-import { alpha, C, DISPLAY, card, sticker } from "../tokens.js";
+import { C, DISPLAY, card, sticker } from "../tokens.js";
 import { DAY_JP, REST_OPTIONS, REST_SEC, toArr } from "../utils.js";
 
 /* ================= せってい ================= */
@@ -77,7 +77,7 @@ function Settings({ core, log, photos, plan, lv, info, onEdit, onToggleWeight, o
 
   return (
     <div className="mt-2">
-      <h2 style={{ fontFamily: DISPLAY }} className="text-sm font-bold mb-4 px-1">せってい</h2>
+      <h2 style={{ fontFamily: DISPLAY }} className="text-base font-bold mb-4 px-1">マイページ</h2>
 
       <button onClick={onEdit} style={card()} className="fx w-full border-2 rounded-3xl px-5 py-4 text-left mb-3 flex items-center gap-3">
         <span className="text-2xl" aria-hidden="true">📝</span>
@@ -523,36 +523,4 @@ function SaveBanner({ onClose }) {
   );
 }
 
-function TabBar({ tab, setTab }) {
-  const items = [
-    { id: "today", label: "きょう", emoji: "🌷" },
-    { id: "log", label: "きろく", emoji: "📖" },
-    { id: "settings", label: "せってい", emoji: "⚙️" },
-  ];
-  return (
-    <nav style={{
-      background: C.surface,
-      paddingBottom: "env(safe-area-inset-bottom, 0px)",
-      boxShadow: `0 -1px 2px ${alpha("#4A3242", .04)}, 0 -8px 20px ${alpha("#C22E62", .06)}`,
-    }} className="fixed bottom-0 left-0 right-0">
-      <div className="max-w-md mx-auto grid grid-cols-3 px-2 pt-2">
-        {items.map((it) => {
-          const on = tab === it.id;
-          return (
-            <button key={it.id} onClick={() => setTab(it.id)} aria-current={on ? "page" : undefined}
-              style={{ color: on ? C.pinkDeep : C.muted }}
-              className="fx py-2 pb-4 text-xs font-bold flex flex-col items-center gap-1">
-              <span style={on ? { background: C.pinkSoft } : undefined}
-                className="text-lg leading-none px-4 py-1.5 rounded-full transition-colors" aria-hidden="true">
-                {it.emoji}
-              </span>
-              {it.label}
-            </button>
-          );
-        })}
-      </div>
-    </nav>
-  );
-}
-
-export { SaveBanner, Settings, TabBar };
+export { SaveBanner, Settings };

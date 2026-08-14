@@ -127,7 +127,7 @@ describe("3年ぶんの記録がある状態でのアプリの起動", () => {
     ));
   };
 
-  it("今日の画面が 1.5秒以内に出る", async () => {
+  it("ホームが 1.5秒以内に出る", async () => {
     seed();
     const el = document.createElement("div");
     document.body.appendChild(el);
@@ -135,20 +135,20 @@ describe("3年ぶんの記録がある状態でのアプリの起動", () => {
     const t = performance.now();
     await act(async () => root.render(<App />));
     const ms = performance.now() - t;
-    expect(el.textContent).toContain("① ウォームアップ");
+    expect(el.textContent).toContain("今日のメニュー");
     expect(ms, `${ms.toFixed(0)}ms かかった`).toBeLessThan(1500);
     await act(async () => root.unmount());
   });
 
-  it("きろくの画面（カレンダー・グラフ・累計）も開ける", async () => {
+  it("カレンダーの画面も開ける", async () => {
     seed();
     const el = document.createElement("div");
     document.body.appendChild(el);
     const root = createRoot(el);
     await act(async () => root.render(<App />));
 
-    const tab = [...el.querySelectorAll("button")].find((b) => b.textContent.includes("きろく"));
-    expect(tab, "きろくのタブが見つからない").toBeTruthy();
+    const tab = [...el.querySelectorAll("button")].find((b) => b.textContent.includes("カレンダー"));
+    expect(tab, "カレンダーのタブが見つからない").toBeTruthy();
     const t = performance.now();
     await act(async () => tab.click());
     const ms = performance.now() - t;
@@ -158,14 +158,14 @@ describe("3年ぶんの記録がある状態でのアプリの起動", () => {
     await act(async () => root.unmount());
   });
 
-  it("せっていの画面も開ける", async () => {
+  it("マイページも開ける", async () => {
     seed();
     const el = document.createElement("div");
     document.body.appendChild(el);
     const root = createRoot(el);
     await act(async () => root.render(<App />));
 
-    const tab = [...el.querySelectorAll("button")].find((b) => b.textContent.includes("せってい"));
+    const tab = [...el.querySelectorAll("button")].find((b) => b.textContent.includes("マイページ"));
     expect(tab).toBeTruthy();
     await act(async () => tab.click());
     expect(el.textContent).toContain("すべての記録を消す");

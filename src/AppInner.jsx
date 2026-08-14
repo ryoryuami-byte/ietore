@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { ExerciseDetail } from "./components/ExerciseDetail.jsx";
 import { FigStyles } from "./components/Fig.jsx";
 import { SessionRunner } from "./components/SessionRunner.jsx";
-import { Center, CheerScreen, ExRow, Header, Section, SwapDialog, WelcomeBack } from "./components/common.jsx";
+import { Center, CheerScreen, ExRow, Section, SwapDialog, WelcomeBack } from "./components/common.jsx";
+import { TabBar, tabTitle } from "./components/TabBar.jsx";
 import { FeelingSheet, NotifyAskSheet, SkipSheet } from "./components/sheets.jsx";
 import { applyCoachSettings } from "./coach.js";
 import { LEGAL_VERSION } from "./legal.js";
@@ -14,9 +15,10 @@ import { buildDay, buildPlan, estimateMin, levelOf, mainIdOf, planIsValid, short
 import { spec, stageOf } from "./logic/progress.js";
 import { capPhotos, normalizeCore, normalizeLog, normalizePhotos } from "./logic/validate.js";
 import { EMPTY_PROFILE } from "./questions.js";
-import { LogView, WeekReview } from "./screens/LogView.jsx";
+import { CalendarView, RecordsView, WeekReview } from "./screens/LogView.jsx";
+import { Home } from "./screens/Home.jsx";
 import { Questionnaire } from "./screens/Questionnaire.jsx";
-import { SaveBanner, Settings, TabBar } from "./screens/Settings.jsx";
+import { SaveBanner, Settings } from "./screens/Settings.jsx";
 import { setSoundEnabled, unlockAudio } from "./sound.js";
 import { warmUp } from "./speech.js";
 import { DEFAULT_CORE, eraseEverything, K_CORE, K_LEGACY, K_LOG, K_PHOTOS, readJSON, useAutoSave, writeJSON } from "./storage.js";
@@ -30,7 +32,7 @@ function AppInner() {
   const [log, setLog] = useState({});
   const [photos, setPhotos] = useState([]);
 
-  const [tab, setTab] = useState("today");
+  const [tab, setTab] = useState("home");
   const [detail, setDetail] = useState(null);
   const [editing, setEditing] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
@@ -331,23 +333,31 @@ function AppInner() {
         paddingTop: "env(safe-area-inset-top, 0px)",
       }} className="sticky top-0 z-10">
         <div className="max-w-md mx-auto px-5 h-12 flex items-center justify-center">
-          <h1 style={{ fontFamily: DISPLAY }} className="text-base font-bold">
-            {tab === "today" ? "きょう" : tab === "log" ? "きろく" : "せってい"}
-          </h1>
+          <h1 style={{ fontFamily: DISPLAY }} className="text-base font-bold">{tabTitle(tab)}</h1>
         </div>
       </div>
 
       <div className="max-w-md mx-auto px-5 pt-5">
-        {tab === "today" && (welcomeBack ? (
+        {/* 3日以上あいた日の「おかえり」は、ホームでもトレーニングでも先に出す */}
+        {(tab === "home" || tab === "train") && welcomeBack && (
           <WelcomeBack id={mainIdOf(dayPlan.ids)} lv={lv} stage={stage} weeks={stats.weeks}
             onShort={() => { writeRec({ short: true }); setDetail(mainIdOf(dayPlan.ids)); }}
             onFull={() => writeRec({ short: false })} />
-        ) : (
-          <>
-            <Header name={core.name} dow={dow} meta={meta} pct={pct} done={doneCount} total={total}
-              lv={dayLv} stage={dayStage} streak={stats.streak} weeks={stats.weeks}
-              sealed={!!rec?.done} rest={dayPlan.focus === "rest"} half={dayHalf} />
+        )}
 
+        {tab === "home" && !welcomeBack && (
+          <Home name={core.name} dow={dow} meta={meta} pct={pct} done={doneCount} total={total}
+            streak={stats.streak} weeks={stats.weeks} sealed={!!rec?.done}
+            rest={dayPlan.focus === "rest"} lv={dayLv} stage={dayStage} half={dayHalf}
+            dayIds={dayIds} dayLv={dayLv} dayStage={dayStage} restSec={restSec}
+            log={log} today={today} trainedToday={trainedToday} skipRec={rec?.skip}
+            onStart={() => setRunning(true)}
+            onOpenTrain={() => setTab("train")}
+            onSkip={() => setSkipOpen(true)} />
+        )}
+
+        {tab === "train" && !welcomeBack && (
+          <>
             {dayHalf && (
               <div style={card({ borderColor: C.lav, ...sticker(C.lav) })} className="border-2 rounded-3xl px-5 py-4 mt-5">
                 <p style={{ fontFamily: DISPLAY, color: C.lavText }} className="text-sm font-bold mb-1">🌿 今日は短縮メニュー</p>
@@ -420,12 +430,11 @@ function AppInner() {
               痛みが出たらその種目はやめてください。体調がすぐれない日は休んで大丈夫です。ととのえる日をとばしても、連続日数は止まりません。
             </p>
           </>
-        ))}
+        )}
 
         {tab === "log" && (
-          <LogView core={core} log={log} photos={photos} plan={plan} today={today} todayKey={todayKey}
-            weeks={stats.weeks} focusOn={stats.focusOn} trainedOn={stats.trained} lv={lv} stage={stage}
-            onEditDay={editDay} onToggleDayEx={toggleDayEx}
+          <RecordsView core={core} log={log} photos={photos} today={today} todayKey={todayKey}
+            weeks={stats.weeks} focusOn={stats.focusOn}
             onWeight={(kg, waist, thigh) => setCore((prev) => ({
               ...prev,
               /* 同じ日曜日に入れ直したら上書き。並びは日付順に保つ */
@@ -436,11 +445,17 @@ function AppInner() {
               const data = await shrinkImage(file);
               setPhotos((prev) => capPhotos([...prev.filter((p) => p.date !== todayKey), { date: todayKey, data }]));
             }}
-            onDeletePhoto={(d) => setPhotos((prev) => prev.filter((p) => p.date !== d))}
+            onDeletePhoto={(d) => setPhotos((prev) => prev.filter((p) => p.date !== d))} />
+        )}
+
+        {tab === "cal" && (
+          <CalendarView log={log} plan={plan} today={today} todayKey={todayKey}
+            weeks={stats.weeks} focusOn={stats.focusOn} trainedOn={stats.trained} lv={lv} stage={stage}
+            onEditDay={editDay} onToggleDayEx={toggleDayEx}
             onNote={(k, text) => setLog((prev) => ({ ...prev, [k]: { ...(prev[k] ?? { ex: {} }), note: text } }))} />
         )}
 
-        {tab === "settings" && (
+        {tab === "mine" && (
           <Settings core={core} log={log} photos={photos} plan={plan} lv={lv} info={levelInfo}
             onEdit={() => setEditing(true)}
             onCheers={(list) => setCore((prev) => ({ ...prev, cheers: list }))}
@@ -499,7 +514,7 @@ function AppInner() {
           onClose={(goLog) => {
             setWeekOpen(false);
             setCore((prev) => ({ ...prev, weekSeen: todayKey }));
-            if (goLog) setTab("log");
+            if (goLog) setTab("cal");
           }} />
       )}
 

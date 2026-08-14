@@ -63,7 +63,7 @@ describe("アプリの起動", () => {
     await act(async () => root.unmount());
   });
 
-  it("保存済みのプロフィールがあれば、今日のメニューが描画できる", async () => {
+  it("保存済みのプロフィールがあれば、ホームが描画できる", async () => {
     window.localStorage.setItem(
       "hometrain:core:v1",
       JSON.stringify({ name: "テスト", profile: PROFILE, plan: buildPlan(PROFILE), consent: CONSENT })
@@ -72,10 +72,55 @@ describe("アプリの起動", () => {
     document.body.appendChild(el);
     const root = createRoot(el);
     await act(async () => root.render(<App />));
-    /* 1回の流れの見出しが出ていれば、種目まで組み上がっている */
+    expect(el.textContent).toContain("テスト");
+    expect(el.textContent).toContain("今日のメニュー");
+    await act(async () => root.unmount());
+  });
+
+  it("タブが5つあり、切り替えられる", async () => {
+    /* v18.3 で3つから5つに増やした。名前と順番が崩れていないかを見る */
+    window.localStorage.setItem(
+      "hometrain:core:v1",
+      JSON.stringify({ name: "テスト", profile: PROFILE, plan: buildPlan(PROFILE), consent: CONSENT })
+    );
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const root = createRoot(el);
+    await act(async () => root.render(<App />));
+
+    const nav = el.querySelector("nav");
+    expect(nav, "下のタブが見つからない").toBeTruthy();
+    const labels = [...nav.querySelectorAll("button")].map((b) => b.textContent.replace(/\s/g, ""));
+    expect(labels).toHaveLength(5);
+    for (const name of ["ホーム", "トレーニング", "記録", "カレンダー", "マイページ"]) {
+      expect(labels.some((l) => l.includes(name)), `${name} のタブが無い`).toBe(true);
+    }
+
+    const go = async (name) => {
+      const b = [...nav.querySelectorAll("button")].find((x) => x.textContent.includes(name));
+      await act(async () => b.click());
+    };
+
+    /* 種目の一覧は「トレーニング」に移した */
+    await go("トレーニング");
     expect(el.textContent).toContain("① ウォームアップ");
     expect(el.textContent).toContain("③ 有酸素");
-    expect(el.textContent).toContain("テスト");
+
+    /* からだの記録とカレンダーは別の入口になった */
+    await go("カレンダー");
+    expect(el.textContent).toContain("日付をタップすると");
+
+    await go("記録");
+    expect(el.textContent).toContain("あつめたバッジ");
+    /* カレンダーは記録の画面には出さない */
+    expect(el.textContent).not.toContain("日付をタップすると");
+
+    await go("マイページ");
+    expect(el.textContent).toContain("すべての記録を消す");
+
+    await go("ホーム");
+    expect(el.textContent).toContain("今日のメニュー");
+
     await act(async () => root.unmount());
   });
 });
