@@ -1,4 +1,4 @@
-const CACHE = "ietore-shell-v1";
+const CACHE = "ietore-shell-v2";
 const ASSETS = [
   "./",
   "./index.html",
