@@ -1,0 +1,37 @@
+name: Verify build
+
+# ietore.html と pwa/index.html は build/build.sh の出力です。
+# 手で書き換えると次のビルドで消えるため、コミットされた内容が
+# ビルド結果と一致しているかを毎回確認します。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Rebuild from the original bundle and the patch list
+        run: ./build/build.sh
+
+      - name: Generated files must match the build output
+        run: |
+          if git diff --quiet ietore.html pwa/index.html; then
+            echo "OK: 生成物はビルド結果と一致しています"
+          else
+            echo "::error::ietore.html / pwa/index.html がビルド結果と一致しません。"
+            echo "これらは build/build.sh の出力です。直接編集せず、"
+            echo "build/patch.py か build/figs.mjs を変更して ./build/build.sh を実行し、"
+            echo "生成された2ファイルもコミットしてください。詳細は AGENTS.md。"
+            git diff --stat ietore.html pwa/index.html
+            exit 1
+          fi
