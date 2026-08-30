@@ -1,0 +1,7 @@
+node_modules/
+build/node_modules
+build/test/site/
+build/test/shots/
+build/shots/
+build/sheet.html
+build/newA.js

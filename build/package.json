@@ -1,0 +1,16 @@
+{
+  "name": "ietore-build",
+  "private": true,
+  "type": "module",
+  "description": "Build and browser-test tooling for the イエトレ app bundle.",
+  "scripts": {
+    "build": "./build.sh",
+    "figs": "node sheet.mjs",
+    "test:reps": "node test/repcount3.mjs test/seed2.js",
+    "test:pwa": "node test/runpwa.mjs",
+    "test:theme": "node test/runpwa2.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.50.1"
+  }
+}
